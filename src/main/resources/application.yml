@@ -5,9 +5,9 @@ spring:
         size: 3
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
-    url: jdbc:mysql://88.99.190.49:30007/comppress?allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8
+    url: jdbc:mysql://localhost:3306/comppress?allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8
     username: root
-    password: 7SdLbGPyvZZhHL2sKALZVH3kBx42oJ
+    password: secret
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:

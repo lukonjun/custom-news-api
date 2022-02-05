@@ -74,6 +74,4 @@ public class ArticleController {
     ) {
         return articleService.getRatedArticlesFromUser(page, size, fromDate, toDate);
     }
-
-
 }

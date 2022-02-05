@@ -52,7 +52,7 @@ service:
   port: 80
 
 ingress:
-  host: stage.lukonjun.de
+  host: news-api.lukonjun.de
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

@@ -45,50 +45,34 @@ public class RatingServiceImpl implements RatingService {
     }
 
     @Override
-    public ResponseEntity<ResponseDto> submitRating(SubmitRatingDto submitRatingDto, String guid) throws Exception {
-        UserEntity userEntity = null;
-        if (guid == null) {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            userEntity = userRepository.findByUsername(authentication.getName());
-            if(userEntity == null) throw new AuthenticationException("You are not authorized, please login","");
-        }
+    public ResponseEntity<ResponseDto> submitRating(SubmitRatingDto submitRatingDto, String guid) {
 
+        UserEntity userEntity = getUserEntityIfGuidNotSet(guid);
+
+        checkIfCriteriaIdAndArticleIdExist(submitRatingDto);
+        boolean isNewRating = checkIfNewRating(submitRatingDto, guid);
         List<Rating> ratings = new ArrayList<>();
-        boolean isUpdateRating = false;
-        if (userEntity == null && guid != null) {
-            // NOT LOGGED IN USER WITH GUID
-            for (CriteriaRatingDto criteriaRating : submitRatingDto.getRatings()) {
-                validateArticleAndCriteria(submitRatingDto, criteriaRating);
-                Rating rating = ratingRepository.findByGuidAndArticleIdAndCriteriaId(guid,
-                        submitRatingDto.getArticleId(),
-                        criteriaRating.getCriteriaId());
-                isUpdateRating = prepareRating(isUpdateRating,submitRatingDto, guid, ratings, criteriaRating, rating, 0L);
-            }
-        } else {
-            // LOGGED IN USER WITH JWT
-            for (CriteriaRatingDto criteriaRating : submitRatingDto.getRatings()) {
-                validateArticleAndCriteria(submitRatingDto, criteriaRating);
-                Rating rating = ratingRepository.findByUserIdAndArticleIdAndCriteriaId(userEntity.getId(),
-                        submitRatingDto.getArticleId(),
-                        criteriaRating.getCriteriaId());
-                isUpdateRating = prepareRating(isUpdateRating,submitRatingDto, "-", ratings, criteriaRating, rating, userEntity.getId());
-            }
-        }
-        ratingRepository.saveAll(ratings);
-        if(!isUpdateRating){
-            Optional<Article> article = articleRepository.findById(submitRatingDto.getArticleId());
-            if (article.isPresent()) {
-                Integer countRatings = article.get().getCountRatings();
-                if (countRatings == null) countRatings = 0;
-                countRatings = countRatings + 1;
-                article.get().setCountRatings(countRatings);
-                articleRepository.save(article.get());
-            }
+        
+        Article article = articleRepository.findById(submitRatingDto.getArticleId()).get();
+        if(isNewRating){
+            // New Rating
+            getAddNewRatings(submitRatingDto, article);
+            articleRepository.save(article);
+            getPreparedUpdatedOrNewRatings(submitRatingDto, guid, false, userEntity, ratings);
+            ratingRepository.saveAll(ratings);
             return ResponseEntity.status(HttpStatus.CREATED).body(UpdateRatingResponseDto.builder()
                     .message("Created rating for article")
                     .submitRatingDto(submitRatingDto)
                     .build());
         } else {
+            // Update Rating
+            // Subtract Values from old article Object
+            getSubtractRatingsFromArticle(submitRatingDto, article,guid,userEntity.getId());
+            getAddNewRatings(submitRatingDto, article);
+            articleRepository.save(article);
+            getPreparedUpdatedOrNewRatings(submitRatingDto, guid, true, userEntity, ratings);
+            ratingRepository.saveAll(ratings);
+
             return ResponseEntity.status(HttpStatus.CREATED).body(CreateRatingResponseDto.builder()
                     .message("Updated rating for article")
                     .submitRatingDto(submitRatingDto)
@@ -96,22 +80,124 @@ public class RatingServiceImpl implements RatingService {
         }
     }
 
-    private boolean prepareRating(boolean isUpdateRating, SubmitRatingDto submitRatingDto, String guid, List<Rating> ratings, CriteriaRatingDto criteriaRating, Rating rating, long l) {
-        if (rating != null) {
-            rating.setRating(criteriaRating.getRating());
-            ratings.add(rating);
-            isUpdateRating = true;
-        } else {
-            Rating newRating = Rating.builder()
-                    .rating(criteriaRating.getRating())
-                    .articleId(submitRatingDto.getArticleId())
-                    .criteriaId(criteriaRating.getCriteriaId())
-                    .userId(l) // Anonymous User
-                    .guid(guid)
-                    .build();
-            ratings.add(newRating);
+    private void getSubtractRatingsFromArticle(SubmitRatingDto submitRatingDto, Article article, String guid, Long userId) {
+        // How to differntiate from Users who are logged in?
+        // Or search for find by userId
+        for(CriteriaRatingDto criteriaRatingDto:submitRatingDto.getRatings()){
+            Rating rating;
+            if(guid != null){
+                rating = ratingRepository.findByGuidAndArticleIdAndCriteriaId(guid,
+                        submitRatingDto.getArticleId(),
+                        criteriaRatingDto.getCriteriaId());
+            } else {
+                rating = ratingRepository.findByUserIdAndArticleIdAndCriteriaId(userId,
+                        submitRatingDto.getArticleId(),
+                        criteriaRatingDto.getCriteriaId());
+            }
+
+            if(criteriaRatingDto.getCriteriaId() == 1 && rating.getRating() != criteriaRatingDto.getRating()){
+                article.setRating1sum(article.getRating1sum() - rating.getRating() + criteriaRatingDto.getRating());
+                article.setAverageRating1(article.getRating1sum()/(double) article.getCountRating1());
+            }
+            if(criteriaRatingDto.getCriteriaId() == 2 && rating.getRating() != criteriaRatingDto.getRating()){
+                article.setRating1sum(article.getRating2sum() - rating.getRating() + criteriaRatingDto.getRating());
+                article.setAverageRating1(article.getRating2sum()/(double) article.getCountRating2());
+            }
+            if(criteriaRatingDto.getCriteriaId() == 3 && rating.getRating() != criteriaRatingDto.getRating()){
+                article.setRating1sum(article.getRating3sum() - rating.getRating() + criteriaRatingDto.getRating());
+                article.setAverageRating1(article.getRating3sum()/(double) article.getCountRating3());
+            }
         }
-        return isUpdateRating;
+        // Recalculation
+
+
+    }
+
+    private void getPreparedUpdatedOrNewRatings(SubmitRatingDto submitRatingDto, String guid, boolean isUpdateRating, UserEntity userEntity, List<Rating> ratings) {
+        if(guid ==  null) guid = "-";
+        Long userId;
+        if(userEntity == null){
+            userId = 0L;
+        }else{
+            userId = userEntity.getId();
+        }
+
+        for(CriteriaRatingDto criteriaRating:submitRatingDto.getRatings()) {
+            Rating rating = ratingRepository.findByGuidAndArticleIdAndCriteriaId(guid,
+                    submitRatingDto.getArticleId(),
+                    criteriaRating.getCriteriaId());
+            if (rating != null) {
+                rating.setRating(criteriaRating.getRating());
+                ratings.add(rating);
+            } else {
+                Rating newRating = Rating.builder()
+                        .rating(criteriaRating.getRating())
+                        .articleId(submitRatingDto.getArticleId())
+                        .criteriaId(criteriaRating.getCriteriaId())
+                        .userId(userId)
+                        .guid(guid)
+                        .build();
+                ratings.add(newRating);
+            }
+        }
+    }
+
+    private void checkIfCriteriaIdAndArticleIdExist(SubmitRatingDto submitRatingDto) {
+        for (CriteriaRatingDto criteriaRating : submitRatingDto.getRatings()) {
+            validateArticleAndCriteria(submitRatingDto, criteriaRating);
+        }
+    }
+
+    private void getAddNewRatings(SubmitRatingDto submitRatingDto, Article article) {
+        for(CriteriaRatingDto rating:submitRatingDto.getRatings()){
+            if(rating.getCriteriaId() == 1){
+                article.setCountRating1(article.getCountRating1() + 1);
+                article.setRating1sum(article.getRating1sum() + rating.getRating());
+                article.setAverageRating1(article.getRating1sum()/(double) article.getCountRating1());
+            }
+            if(rating.getCriteriaId() == 2){
+                article.setCountRating2(article.getCountRating2() + 1);
+                article.setRating2sum(article.getRating2sum() + rating.getRating());
+                article.setAverageRating2(article.getRating2sum()/(double) article.getCountRating2());
+            }
+            if(rating.getCriteriaId() == 3){
+                article.setCountRating3(article.getCountRating3() + 1);
+                article.setRating3sum(article.getRating3sum() + rating.getRating());
+                article.setAverageRating3(article.getRating3sum()/(double) article.getCountRating3());
+            }
+        }
+        article.setCountRatings(article.getCountRatings() + 1);
+        Integer validCriteria = 0;
+        if(article.getAverageRating1() != 0) validCriteria++;
+        if(article.getAverageRating2() != 0) validCriteria++;
+        if(article.getAverageRating3() != 0) validCriteria++;
+        Double totalSumRating = (article.getAverageRating1() + article.getAverageRating2() + article.getAverageRating3())/(double)validCriteria;
+        article.setTotalAverageRating(totalSumRating);
+    }
+
+    private boolean checkIfNewRating(SubmitRatingDto submitRatingDto, String guid) {
+        boolean isNewRating = true;
+        if(guid ==  null) guid = "-";
+        for (CriteriaRatingDto criteriaRating : submitRatingDto.getRatings()) {
+            Rating rating = ratingRepository.findByGuidAndArticleIdAndCriteriaId(guid,
+                    submitRatingDto.getArticleId(),
+                    criteriaRating.getCriteriaId());
+            if(rating != null){
+                isNewRating = false;
+                break;
+            }
+        }
+        return isNewRating;
+    }
+
+    private UserEntity getUserEntityIfGuidNotSet(String guid) {
+        UserEntity userEntity = null;
+        if (guid == null) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            userEntity = userRepository.findByUsername(authentication.getName());
+            if(userEntity == null) throw new AuthenticationException("You are not authorized, please login","");
+        }
+        return userEntity;
     }
 
     private void validateArticleAndCriteria(SubmitRatingDto submitRatingDto, CriteriaRatingDto criteriaRating) {
