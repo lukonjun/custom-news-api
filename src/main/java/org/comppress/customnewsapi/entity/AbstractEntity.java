@@ -15,9 +15,11 @@ public abstract class AbstractEntity {
     @Version
     protected Long version;
     //@Convert(converter = LocalDateTimeConverter.class)
-    protected LocalDateTime dateCreated = LocalDateTime.now();;
+    protected LocalDateTime dateCreated = LocalDateTime.now();
     //@Convert(converter = LocalDateTimeConverter.class)
     protected LocalDateTime dateModified = LocalDateTime.now();
+
+    @Column(columnDefinition = "TINYINT(1) DEFAULT 0")
     protected Boolean deleted;
 
     @PreUpdate

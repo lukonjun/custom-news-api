@@ -8,9 +8,11 @@ import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
 import lombok.extern.slf4j.Slf4j;
 import org.comppress.customnewsapi.dto.ArticleDto;
+import org.comppress.customnewsapi.dto.CustomArticleDto;
 import org.comppress.customnewsapi.dto.CustomRatedArticleDto;
 import org.comppress.customnewsapi.dto.GenericPage;
 import org.comppress.customnewsapi.entity.*;
+import org.comppress.customnewsapi.exceptions.GeneralException;
 import org.comppress.customnewsapi.repository.ArticleRepository;
 import org.comppress.customnewsapi.repository.PublisherRepository;
 import org.comppress.customnewsapi.repository.RssFeedRepository;
@@ -21,6 +23,7 @@ import org.comppress.customnewsapi.utils.DateUtils;
 import org.comppress.customnewsapi.utils.PageHolderUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +35,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
@@ -50,6 +56,12 @@ import java.util.stream.Collectors;
 @Service
 public class ArticleServiceImpl implements ArticleService, BaseSpecification {
 
+    @Value("${image.width}")
+    private Integer imageWidth;
+
+    @Value("${image.height}")
+    private Integer imageHeight;
+
     private final RssFeedRepository rssFeedRepository;
     private final ArticleRepository articleRepository;
     private final PublisherRepository publisherRepository;
@@ -63,7 +75,7 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
         this.userRepository = userRepository;
     }
 
-    public List<Article> fetchArticlesFromTopNewsFeed(TopNewsFeed topNewsFeed){
+    public List<Article> fetchArticlesFromTopNewsFeed(TopNewsFeed topNewsFeed) {
         List<Article> articles = new ArrayList<>();
 
         SyndFeed feed = new SyndFeedImpl();
@@ -179,11 +191,26 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
             if (imgUrl == null && syndEntry.getContents() != null && syndEntry.getContents().size() > 0) {
                 imgUrl = CustomStringUtils.getImgLinkFromTagSrc(syndEntry.getContents().get(0).getValue(), "url=\"");
             }
-            if (imgUrl == null || imgUrl.isEmpty()) {
-                Optional<Publisher> publisher = publisherRepository.findById(rssFeed.getPublisherId());
-                article.setUrlToImage(publisher.get().getUrlToImage());
-            } else {
-                article.setUrlToImage(imgUrl);
+
+            Dimension dimension = new Dimension(0, 0);
+
+            if (imgUrl != null) {
+                dimension = getImageDimension(imgUrl);
+            }
+
+            boolean isBadResolution = false;
+            // If width or length of the image is less than 200px then we save the publisher image
+            if ((dimension.getHeight() < imageHeight || dimension.getWidth() < imageWidth) && imgUrl != null) {
+                isBadResolution = true;
+                log.debug("Picture with image url {} has a bad resolution", imgUrl);
+            }
+            if(rssFeed != null){
+                if (imgUrl == null || imgUrl.isEmpty() || isBadResolution) {
+                    Optional<Publisher> publisher = publisherRepository.findById(rssFeed.getPublisherId());
+                    article.setUrlToImage(publisher.get().getUrlToImage());
+                } else {
+                    article.setUrlToImage(imgUrl);
+                }
             }
         }
         if (syndEntry.getUri() != null) {
@@ -201,9 +228,9 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
             article.setDescription(formatText(syndEntry.getDescription().getValue()));
         }
 
-        if(rssFeed != null){
+        if (rssFeed != null) {
             article.setRssFeedId(rssFeed.getId());
-        }else {
+        } else {
             article.setRssFeedId(-1L);
         }
         return article;
@@ -227,21 +254,27 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
         return response.body();
     }
 
-    public ResponseEntity<GenericPage<ArticleDto>> getArticles(int page, int size, String title, String category, String publisherNewsPaper, String lang, String fromDate, String toDate) {
+    public ResponseEntity<GenericPage<CustomArticleDto>> getArticles(int page, int size, String title, String category, String publisherNewsPaper, String lang, String fromDate, String toDate) {
 
-        Page<Article> articlesPage = articleRepository
-                .retrieveByCategoryOrPublisherName(category,
+        Page<ArticleRepository.CustomArticle> articlesPage = articleRepository
+                .retrieveByCategoryOrPublisherNameToCustomArticle(category,
                         publisherNewsPaper, title, lang,
                         DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(toDate),
                         PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id")));
 
 
-        GenericPage<ArticleDto> genericPage = new GenericPage<>();
-        genericPage.setData(articlesPage.stream().map(Article::toDto).collect(Collectors.toList()));
+        GenericPage<CustomArticleDto> genericPage = new GenericPage<>();
+        genericPage.setData(articlesPage.stream().map(this::toCustomDto).collect(Collectors.toList()));
         BeanUtils.copyProperties(articlesPage, genericPage);
 
         return ResponseEntity.status(HttpStatus.OK).body(genericPage);
 
+    }
+
+    private CustomArticleDto toCustomDto(ArticleRepository.CustomArticle s) {
+        CustomArticleDto dto = new CustomArticleDto();
+        BeanUtils.copyProperties(s, dto);
+        return dto;
     }
 
     @Override
@@ -270,14 +303,14 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
     }
 
     @Override
-    public ResponseEntity<GenericPage<ArticleDto>> getArticlesNotRated(int page, int size, Long categoryId, List<Long> listPublisherIds, String lang, String fromDate, String toDate) {
+    public ResponseEntity<GenericPage<CustomArticleDto>> getArticlesNotRated(int page, int size, Long categoryId, List<Long> listPublisherIds, String lang, String fromDate, String toDate, Boolean topFeed) {
         if (listPublisherIds == null) {
             listPublisherIds = publisherRepository.findAll().stream().map(Publisher::getId).collect(Collectors.toList());
         }
-        Page<Article> articlesPage = articleRepository.retrieveUnratedArticlesByCategoryIdAndPublisherIdsAndLanguage(categoryId, listPublisherIds, lang, DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(fromDate), PageRequest.of(page, size));
+        Page<ArticleRepository.CustomArticle> articlesPage = articleRepository.retrieveUnratedArticlesByCategoryIdAndPublisherIdsAndLanguage(categoryId, listPublisherIds, lang, DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(toDate), topFeed,PageRequest.of(page, size));
 
-        GenericPage<ArticleDto> genericPage = new GenericPage<>();
-        genericPage.setData(articlesPage.stream().map(Article::toDto).collect(Collectors.toList()));
+        GenericPage<CustomArticleDto> genericPage = new GenericPage<>();
+        genericPage.setData(articlesPage.stream().map(this::toCustomDto).collect(Collectors.toList()));
         BeanUtils.copyProperties(articlesPage, genericPage);
 
         return ResponseEntity.status(HttpStatus.OK).body(genericPage);
@@ -287,14 +320,63 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
     @Override
     public ResponseEntity<GenericPage> getRatedArticlesFromUser(int page, int size, String fromDate, String toDate) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserEntity userEntity = userRepository.findByUsername(authentication.getName());
-        userEntity.getUsername();
-        // Todo add Date
-        List<Article> articleList = articleRepository.getRatedArticleFromUser(userEntity.getId());
+        UserEntity userEntity = userRepository.findByUsernameAndDeletedFalse(authentication.getName());
 
-        List<Long> articleIdList = articleList.stream().map(Article::getId).collect(Collectors.toList());
+        List<Article> articleList = articleRepository.getRatedArticleFromUser(
+                userEntity.getId(),
+                DateUtils.stringToLocalDateTime(fromDate),
+                DateUtils.stringToLocalDateTime(toDate));
 
         List<ArticleDto> articleDtos = articleList.stream().map(Article::toDto).collect(Collectors.toList());
         return PageHolderUtils.getResponseEntityGenericPage(page, size, articleDtos);
+    }
+
+    @Override
+    public ResponseEntity<GenericPage> getPersonalRatedArticlesFromUser(int page, int size, String fromDate, String toDate) {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserEntity userEntity = userRepository.findByUsernameAndDeletedFalse(authentication.getName());
+
+        List<ArticleRepository.CustomRatedArticle> customRatedArticles =
+                articleRepository.retrieveAllPersonalRatedArticlesInDescOrder(
+                        userEntity.getId(),
+                        DateUtils.stringToLocalDateTime(fromDate),
+                        DateUtils.stringToLocalDateTime(toDate)
+                );
+
+        List<CustomRatedArticleDto> customRatedArticleDtoList = new ArrayList<>();
+        customRatedArticles.forEach(customRatedArticle -> {
+            CustomRatedArticleDto customRatedArticleDto = new CustomRatedArticleDto();
+            BeanUtils.copyProperties(customRatedArticle, customRatedArticleDto);
+            if (customRatedArticle.getCount_comment() == null) {
+                customRatedArticleDto.setCount_comment(0);
+            }
+            customRatedArticleDtoList.add(customRatedArticleDto);
+        });
+
+        return PageHolderUtils.getResponseEntityGenericPage(page, size, customRatedArticleDtoList);
+    }
+
+    private Dimension getImageDimension(String imageUrl) {
+
+        BufferedImage image;
+        URL url = null;
+        try {
+            url = new URL(imageUrl);
+            image = ImageIO.read(url);
+
+
+//            TODO size checking
+
+//            DataBuffer dataBuffer = image.getData().getDataBuffer();
+//            long sizeBytes = ((long) dataBuffer.getSize()) * 4L;
+//            long sizeMB = sizeBytes / (1024L * 1024L);
+
+            return new Dimension(image.getHeight(), image.getWidth());
+
+        } catch (IOException e) {
+            throw new GeneralException("Error while get the resolution of the image", String.valueOf(url));
+        }
+
     }
 }

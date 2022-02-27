@@ -9,6 +9,7 @@ import org.comppress.customnewsapi.service.article.ArticleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,22 +30,26 @@ public class TopNewsFeedServiceImpl implements TopNewsFeedService {
 
     @Override
     public void checkTopNewsFeeds() {
-        // Get All Top News and Build a list
+        // Get All Top News
         List<TopNewsFeed> listTopNewsFeeds = topNewsFeedRepository.findAll();
+
         // Fetch TopNews
         for(TopNewsFeed topNewsFeed:listTopNewsFeeds){
-            List<Article> listTopNewsArticles = articleService.fetchArticlesFromTopNewsFeed(topNewsFeed);
-            if(listTopNewsArticles == null) continue;
-            log.info("Fetching {} News from {}",listTopNewsArticles.size(),topNewsFeed.getUrl());
-            // Check if there is an entry in the db
-            for(Article article:listTopNewsArticles){
-                Optional<Article> articleOptional = articleRepository.findByUrlAndIsTopNewsFalse(article.getUrl());
-                if(articleOptional.isPresent()){
-                    // If yes give them a Flag
-                    articleOptional.get().setTopNews(true);
-                    articleRepository.save(articleOptional.get());
-                    log.info("Set Flag for Top News for article with id {}",articleOptional.get().getId());
+            List<Article> listTopNewsArticles = new ArrayList<>();
+            try{
+                listTopNewsArticles = articleService.fetchArticlesFromTopNewsFeed(topNewsFeed);
+                for(Article article:listTopNewsArticles){
+                    Optional<Article> articleOptional = articleRepository.findByUrlAndIsTopNewsFalse(article.getUrl());
+                    if(articleOptional.isPresent()){
+                        // If yes give them a Flag
+                        articleOptional.get().setTopNews(true);
+                        articleRepository.save(articleOptional.get());
+                        log.info("Set Flag for Top News for article with id {}",articleOptional.get().getId());
+                    }
                 }
+                log.info("Fetching {} News from {}",listTopNewsArticles.size(),topNewsFeed.getUrl());
+            }catch(Exception e){
+                log.error("AN exception occurred {}", e.getMessage());
             }
         }
     }

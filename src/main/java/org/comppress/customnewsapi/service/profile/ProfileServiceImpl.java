@@ -46,7 +46,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     public ResponseEntity<ResponseDto> sendOtp(ForgetPasswordDto forgetPasswordDto) throws EmailSenderException, EmailAlreadyExistsException {
-        UserEntity user = userRepository.findByEmail(forgetPasswordDto.getEmail()).
+        UserEntity user = userRepository.findByEmailAndDeletedFalse(forgetPasswordDto.getEmail()).
                 orElseThrow(() -> new UserNotFoundException("User not found",forgetPasswordDto.getEmail()));
 
         String otp = String.format("%06d", new Random().nextInt(999999));
@@ -100,7 +100,7 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public ResponseEntity<UserDto> updateCategoryAndPublisherPreference(PreferenceDto preferenceDto) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserEntity userEntity = userRepository.findByUsername(authentication.getName());
+        UserEntity userEntity = userRepository.findByUsernameAndDeletedFalse(authentication.getName());
         if(userEntity == null){ return ResponseEntity.status(401).body(null);}
         userEntity.setListCategoryIds(preferenceDto.getListOfCategoryIds());
         userEntity.setListPublisherIds(preferenceDto.getListOfPublisherIds());
@@ -113,7 +113,7 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public ResponseEntity<UserDto> resetPreferences() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserEntity userEntity = userRepository.findByUsername(authentication.getName());
+        UserEntity userEntity = userRepository.findByUsernameAndDeletedFalse(authentication.getName());
         if(userEntity == null){ return ResponseEntity.status(401).body(null);}
         userEntity.setListCategoryIds(null);
         userEntity.setListPublisherIds(null);

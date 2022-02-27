@@ -22,7 +22,7 @@ public class AuthenticationService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String userName) throws UsernameNotFoundException {
-        UserEntity user = userRepository.findByUsername(userName);
+        UserEntity user = userRepository.findByUsernameAndDeletedFalse(userName);
 
         if (user == null) {
             throw new UsernameNotFoundException("User not found with username: " + userName);

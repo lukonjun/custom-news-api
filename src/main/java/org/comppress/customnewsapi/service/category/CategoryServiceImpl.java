@@ -53,7 +53,7 @@ public class CategoryServiceImpl implements CategoryService {
     public ResponseEntity<GenericPage> getCategoriesUser(String lang, int page, int size) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserEntity userEntity = userRepository.findByUsername(authentication.getName());
+        UserEntity userEntity = userRepository.findByUsernameAndDeletedFalse(authentication.getName());
 
         if(userEntity.getListCategoryIds() == null || userEntity.getListCategoryIds().isEmpty() || doesNotContainAnyCategoriesFromLang(userEntity.getListCategoryIds(),lang)){
             Page<Category> categoryPage = categoryRepository.findByLang(lang,PageRequest.of(page, size));

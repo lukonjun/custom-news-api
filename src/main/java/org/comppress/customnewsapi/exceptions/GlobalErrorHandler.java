@@ -68,6 +68,15 @@ public class GlobalErrorHandler extends ResponseEntityExceptionHandler {
                 .build());
     }
 
+    @ExceptionHandler(GeneralException.class)
+    public ResponseEntity<ErrorResponseDto> handleGeneralException(GeneralException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponseDto.builder()
+                .message(ex.getMessage())
+                .variable(ex.getVariable())
+                .errorCode(ErrorCodes.CNA_006)
+                .build());
+    }
+
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorResponseDto.builder()

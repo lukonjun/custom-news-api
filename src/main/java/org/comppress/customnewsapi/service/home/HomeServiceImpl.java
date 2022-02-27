@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.comppress.customnewsapi.dto.CustomCategoryDto;
 import org.comppress.customnewsapi.dto.CustomRatedArticleDto;
 import org.comppress.customnewsapi.dto.GenericPage;
+import org.comppress.customnewsapi.entity.AbstractEntity;
 import org.comppress.customnewsapi.entity.Category;
 import org.comppress.customnewsapi.entity.Publisher;
 import org.comppress.customnewsapi.entity.UserEntity;
@@ -47,7 +48,7 @@ public class HomeServiceImpl implements HomeService, BaseSpecification {
 
     public List<Long> getPublisher(List<Long> publisherIds, String lang){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserEntity userEntity = userRepository.findByUsername(authentication.getName());
+        UserEntity userEntity = userRepository.findByUsernameAndDeletedFalse(authentication.getName());
 
         if(userEntity != null){
             if(userEntity.getListPublisherIds() != null){
@@ -62,7 +63,7 @@ public class HomeServiceImpl implements HomeService, BaseSpecification {
 
     public List<Long> getCategory(List<Long> categoryIds, String lang){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserEntity userEntity = userRepository.findByUsername(authentication.getName());
+        UserEntity userEntity = userRepository.findByUsernameAndDeletedFalse(authentication.getName());
 
         if(userEntity != null){
             if(userEntity.getListCategoryIds() != null){
@@ -83,7 +84,8 @@ public class HomeServiceImpl implements HomeService, BaseSpecification {
         final List<Long> finalPubIds = getPublisher(publisherIds, lang);
         categoryIds = getCategory(categoryIds,lang);
 
-        List<CustomCategoryDto> customCategoryDtos = categoryRepository.findByCategoryIds(categoryIds).stream().map(s -> setArticles(s, lang,
+        List<CustomCategoryDto> customCategoryDtos = categoryRepository.
+                findByCategoryIds(categoryIds).stream().map(s -> setArticles(s, lang,
                 finalPubIds, DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(toDate), noPaywall)).collect(Collectors.toList());
         return PageHolderUtils.getResponseEntityGenericPage(page,size,customCategoryDtos);
     }
@@ -108,7 +110,7 @@ public class HomeServiceImpl implements HomeService, BaseSpecification {
                                           List<Long> publisherIds, LocalDateTime fromDate, LocalDateTime toDate, Boolean noPaywall) {
         // TODO Limit 1, Publishers included, Rated
         if (publisherIds == null || publisherIds.isEmpty()) {
-            publisherIds = publisherRepository.findByLang(lang).stream().map(publisher -> publisher.getId()).collect(Collectors.toList());
+            publisherIds = publisherRepository.findByLang(lang).stream().map(AbstractEntity::getId).collect(Collectors.toList());
         }
         Long categoryId = category.getId();
         ArticleRepository.CustomRatedArticle article = articleRepository.retrieveArticlesByCategoryIdsAndPublisherIdsAndLanguageAndLimit(categoryId,publisherIds,lang,fromDate,toDate,noPaywall);
@@ -117,6 +119,9 @@ public class HomeServiceImpl implements HomeService, BaseSpecification {
             CustomRatedArticleDto customRatedArticleDto = new CustomRatedArticleDto();
             twitterService.setReplyCount(customRatedArticleDto);
             BeanUtils.copyProperties(article, customRatedArticleDto);
+            if (article.getCount_comment() == null) {
+                customRatedArticleDto.setCount_comment(0);
+            }
             customCategoryDto.setArticle(customRatedArticleDto);
         }else {
             customCategoryDto.setArticle(null);

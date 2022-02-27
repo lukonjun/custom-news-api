@@ -49,7 +49,7 @@ public class RatingServiceImpl implements RatingService {
         UserEntity userEntity = null;
         if (guid == null) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            userEntity = userRepository.findByUsername(authentication.getName());
+            userEntity = userRepository.findByUsernameAndDeletedFalse(authentication.getName());
             if(userEntity == null) throw new AuthenticationException("You are not authorized, please login","");
         }
 

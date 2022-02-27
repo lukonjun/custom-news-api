@@ -1,3 +1,8 @@
+info:
+  app:
+    name: compress
+    description: custom-news-api
+    version: 1.0
 spring:
   task:
     scheduling:
@@ -5,9 +10,9 @@ spring:
         size: 3
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
-    url: jdbc:mysql://88.99.190.49:30007/comppress?allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8
+    url: jdbc:mysql://localhost:3306/comppress?allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8
     username: root
-    password: 7SdLbGPyvZZhHL2sKALZVH3kBx42oJ
+    password: root
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
@@ -58,6 +63,29 @@ executor:
       size: 1000
   queue:
     size: 100
+gdpr:
+  secret: secret
+image:
+  width: 200
+  height: 200
+management:
+  security:
+    enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: ['health', 'info']
+  endpoint:
+    health:
+      group:
+        custom:
+          show-components: always
+          show-details: always
+  health:
+    status:
+      order: UP,DOWN,OUT_OF_SERVICE,UNKNOWN
+
+
 #logging:
 #  file:
 #    name: /var/log/comppress.log
@@ -65,3 +93,4 @@ executor:
 #    rollingpolicy:
 #      max-file-size: 25MB
 #      max-history: 7
+

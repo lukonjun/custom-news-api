@@ -104,7 +104,7 @@ public class FileUploadServiceImpl implements FileUploadService {
                 publisher = new Publisher(record.get(RSS_FEED_SOURCE),record.get(RSS_FEED_LANG),"");
                 publisherRepository.save(publisher);
             }
-            Category category = categoryRepository.findByName(record.get(RSS_FEED_CATEGORY));
+            Category category = categoryRepository.findByNameAndLang(record.get(RSS_FEED_CATEGORY),record.get(RSS_FEED_LANG));
             if (category == null) {
                 category = new Category(record.get(RSS_FEED_CATEGORY), record.get(RSS_FEED_LANG),"");
                 categoryRepository.save(category);
@@ -148,8 +148,8 @@ public class FileUploadServiceImpl implements FileUploadService {
         List<CSVRecord> csvRecordList = getRecords(file);
         List<CategoryDto> categoryDtoList = new ArrayList<>();
         for(CSVRecord csvRecord:csvRecordList){
-            Category category = categoryRepository.findByName(csvRecord.get(CATEGORY_NAME));
-            if(category != null){
+            List<Category> listCategory = categoryRepository.findByName(csvRecord.get(CATEGORY_NAME));
+            for(Category category:listCategory){
                 category.setUrlToImage(csvRecord.get(CATEGORY_SVG_URL));
                 CategoryDto categoryDto = new CategoryDto();
                 BeanUtils.copyProperties(category, categoryDto);

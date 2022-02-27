@@ -11,7 +11,8 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface CategoryRepository extends JpaRepository<Category,Long>, JpaSpecificationExecutor<Category> {
-    Category findByName(String name);
+    List<Category> findByName(String name);
+    Category findByNameAndLang(String name, String lang);
     Page<Category> findByLang(String lang, Pageable pageable);
     List<Category> findByLang(String lang);
     @Query(value = "SELECT * FROM category c WHERE c.id IN (:ids) ORDER BY FIELD(id, :ids)", nativeQuery = true)     // 2. Spring JPA In cause using @Query

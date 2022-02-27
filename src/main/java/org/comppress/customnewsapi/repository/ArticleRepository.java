@@ -53,7 +53,59 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
                                                     @Param("toDate") LocalDateTime toDate,
                                                     Pageable pageable);
 
-    @Query(value = "select t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at, a.content, a.count_ratings, a.is_accessible,  t.average_rating_criteria_1, t.average_rating_criteria_2, t.average_rating_criteria_3, sum(t.average_rating_criteria_1 + t.average_rating_criteria_2 + t.average_rating_criteria_3)/" +
+
+    @Query(value = "SELECT at.id as id, at.author as author, at.title as title, at.description as description, " +
+            "at.url as url, at.url_to_image as urlToImage, at.published_at as publishedAt, at.count_ratings as countRatings, " +
+            "at.is_accessible as isAccessible, at.is_top_news isTopNews, p.id as publisherId, p.name as publisherName, " +
+            "0 as countComment, c.id as categoryId, c.name as categoryName " +
+            "FROM article at JOIN rss_feed rf on rf.id = at.rss_feed_id " +
+            "JOIN publisher p on p.id = rf.publisher_id " +
+            "JOIN category c on c.id = rf.category_id " +
+            "WHERE " +
+            "(:category is null or :category = '' or c.name LIKE %:category%) AND " +
+            "(:publisherName is null or :publisherName = '' or p.name LIKE %:publisherName%) AND " +
+            "(:title is null or :title = '' or at.title LIKE %:title%) AND " +
+            "(:language is null or :language = '' or rf.lang LIKE :language) AND " +
+            "at.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND " +
+            "IFNULL(:toDate,now()) ",
+            countQuery = "SELECT count(*) FROM article at JOIN rss_feed rf on rf.id = at.rss_feed_id " +
+                    "JOIN publisher p on p.id = rf.publisher_id " +
+                    "JOIN category c on c.id = rf.category_id WHERE " +
+                    "(:category is null or :category = '' or c.name LIKE %:category%) AND " +
+                    "(:publisherName is null or :publisherName = '' or p.name LIKE %:publisherName%) AND " +
+                    "(:title is null or :title = '' or at.title LIKE %:title%) AND " +
+                    "(:language is null or :language = '' or rf.lang LIKE :language) AND " +
+                    "at.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND " +
+                    "IFNULL(:toDate,now())", nativeQuery = true)
+    Page<CustomArticle> retrieveByCategoryOrPublisherNameToCustomArticle(@Param("category") String category,
+                                                                   @Param("publisherName") String publisherName,
+                                                                   @Param("title") String title,
+                                                                   @Param("language") String language,
+                                                                   @Param("fromDate") LocalDateTime fromDate,
+                                                                   @Param("toDate") LocalDateTime toDate,
+                                                                   Pageable pageable);
+
+    interface CustomArticle {
+        Long getId();
+        String getAuthor();
+        String getTitle();
+        String getDescription();
+        String getUrl();
+        String getUrlToImage();
+        String getPublishedAt();
+        Integer getCountRatings();
+        Boolean getIsAccessible();
+        Boolean getIsTopNews();
+        String getPublisherName();
+        Long getPublisherId();
+        Integer getCountComment();
+        Long getCategoryId();
+        String getCategoryName();
+        Boolean getIsRated();
+
+    }
+
+    @Query(value = "select c.id as category_id, c.name as category_name, 0 as count_comment, t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at, a.content, a.count_ratings, a.is_accessible,  t.average_rating_criteria_1, t.average_rating_criteria_2, t.average_rating_criteria_3, sum(t.average_rating_criteria_1 + t.average_rating_criteria_2 + t.average_rating_criteria_3)/" +
             "(CASE WHEN  t.average_rating_criteria_1 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_2 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_3 IS NULL THEN 0 ELSE 1 END) AS total_average_rating " +
             "from (SELECT distinct r.article_id, " +
             "(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=1) as average_rating_criteria_1, " +
@@ -65,7 +117,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             "(:title is null or :title = '' or a.title LIKE %:title%) AND " +
             "(:language is null or :language = '' or rf.lang LIKE :language) AND " +
             "a.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate,now()) " +
-            "group by t.article_id order by total_average_rating DESC;",countQuery = "select COUNT(*) "+
+            "group by t.article_id order by total_average_rating DESC;", countQuery = "select COUNT(*) " +
             "from (SELECT distinct r.article_id, " +
             "(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=1) as average_rating_criteria_1, " +
             "(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=2) as average_rating_criteria_2, " +
@@ -77,7 +129,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             "(:language is null or :language = '' or rf.lang LIKE :language) AND " +
             "a.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate,now()) " +
             "group by t.article_id order by total_average_rating DESC;"
-            ,nativeQuery = true)
+            , nativeQuery = true)
     Page<CustomRatedArticle> retrieveAllRatedArticlesInDescOrder(
             @Param("category") String category,
             @Param("publisherName") String publisherName,
@@ -87,7 +139,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             @Param("toDate") LocalDateTime toDate,
             Pageable pageable);
 
-    @Query(value = "select t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at, a.content, a.count_ratings, a.is_accessible,  a.is_top_news, p.id as publisher_id, p.name as publisher_name,t.average_rating_criteria_1, t.average_rating_criteria_2, t.average_rating_criteria_3, sum(t.average_rating_criteria_1 + t.average_rating_criteria_2 + t.average_rating_criteria_3)/" +
+    @Query(value = "select c.id as category_id, c.name as category_name, 0 as count_comment, t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at, a.content, a.count_ratings, a.is_accessible,  a.is_top_news, p.id as publisher_id, p.name as publisher_name,t.average_rating_criteria_1, t.average_rating_criteria_2, t.average_rating_criteria_3, sum(t.average_rating_criteria_1 + t.average_rating_criteria_2 + t.average_rating_criteria_3)/" +
             "(CASE WHEN  t.average_rating_criteria_1 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_2 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_3 IS NULL THEN 0 ELSE 1 END) AS total_average_rating " +
             "from (SELECT distinct r.article_id, " +
             "(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=1) as average_rating_criteria_1, " +
@@ -101,7 +153,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             "(:isAccessible =  0 or :isAccessible = a.is_accessible) AND " +
             "a.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate,now()) " +
             "group by t.article_id order by total_average_rating DESC;"
-            ,nativeQuery = true)
+            , nativeQuery = true)
     List<CustomRatedArticle> retrieveAllRatedArticlesInDescOrder(
             @Param("categoryId") Long categoryId,
             @Param("publisherIds") List<Long> publisherIds,
@@ -111,7 +163,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             @Param("topFeed") Boolean topFeed,
             @Param("isAccessible") Boolean isAccessible);
 
-    @Query(value = "select t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at, a.content, a.count_ratings, a.is_accessible,  t.average_rating_criteria_1, t.average_rating_criteria_2, t.average_rating_criteria_3, sum(t.average_rating_criteria_1 + t.average_rating_criteria_2 + t.average_rating_criteria_3)/" +
+    @Query(value = "select c.id as category_id, c.name as category_name, 0 as count_comment, t.article_id ,a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at, a.content, a.count_ratings, a.is_accessible,  t.average_rating_criteria_1, t.average_rating_criteria_2, t.average_rating_criteria_3, sum(t.average_rating_criteria_1 + t.average_rating_criteria_2 + t.average_rating_criteria_3)/" +
             "(CASE WHEN  t.average_rating_criteria_1 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_2 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_3 IS NULL THEN 0 ELSE 1 END) AS total_average_rating " +
             "from (SELECT distinct r.article_id, " +
             "(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=1) as average_rating_criteria_1, " +
@@ -123,35 +175,12 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             "(:language is null or :language = '' or rf.lang LIKE :language) AND " +
             "a.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate,now()) " +
             "group by t.article_id order by total_average_rating DESC;"
-            ,nativeQuery = true)
+            , nativeQuery = true)
     List<CustomRatedArticle> retrieveAllRatedArticlesByUser(
             @Param("fromDate") LocalDateTime fromDate,
             @Param("toDate") LocalDateTime toDate);
 
-    interface CustomRatedArticle {
-        Long getPublisher_id();
-        Integer getComment_count();
-        String getPublisher_name();
-        Long getArticle_id();
-        String getAuthor();
-        String getTitle();
-        String getDescription();
-        String getUrl();
-        String getUrl_to_image();
-        String getGuid();
-        String getPublished_at();
-        String getContent();
-        Integer getCount_ratings();
-        Boolean getIs_accessible();
-        Boolean getIs_top_news();
-        Double getAverage_rating_criteria_1();
-        Double getAverage_rating_criteria_2();
-        Double getAverage_rating_criteria_3();
-        Double getTotal_average_rating();
-    }
-
-
-    @Query(value = "select t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at,\n" +
+    @Query(value = "select c.id as category_id, c.name as category_name, 0 as count_comment, t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at,\n" +
             "       a.content, a.count_ratings, a.is_accessible, t.average_rating_criteria_1, t.average_rating_criteria_2,\n" +
             "       t.average_rating_criteria_3, sum(t.average_rating_criteria_1  +t.average_rating_criteria_2+  t.average_rating_criteria_3)/\n" +
             "                                    (CASE WHEN  t.average_rating_criteria_1 IS NULL THEN 0 ELSE 1 END +\n" +
@@ -191,7 +220,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             Pageable pageable);
 
 
-    @Query(value = "select p.id as publisher_id, p.name as publisher_name,t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at,\n" +
+    @Query(value = "select c.id as category_id, c.name as category_name, 0 as count_comment, p.id as publisher_id, p.name as publisher_name,t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at, a.is_top_news, \n" +
             "       a.content, a.count_ratings, a.is_accessible, t.average_rating_criteria_1, t.average_rating_criteria_2,\n" +
             "       t.average_rating_criteria_3, sum(t.average_rating_criteria_1  +t.average_rating_criteria_2+  t.average_rating_criteria_3)/\n" +
             "                                    (CASE WHEN  t.average_rating_criteria_1 IS NULL THEN 0 ELSE 1 END +\n" +
@@ -221,29 +250,41 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     @Query(value = "SELECT * FROM article WHERE (:articleId is null or id = :articleId)", nativeQuery = true)
     List<Article> customTestQuery(@Param("articleId") Long articleId);
 
-    @Query(value = "SELECT * FROM article a JOIN rss_feed rf on rf.id = a.rss_feed_id " +
+    @Query(value = "SELECT a.id as id, a.author as author, a.title as title, a.description as description, " +
+            "a.url as url, a.url_to_image as urlToImage, a.published_at as publishedAt, a.count_ratings as countRatings, " +
+            "a.is_accessible as isAccessible, a.is_top_news isTopNews, p.id as publisherId, p.name as publisherName, " +
+            "0 as countComment, c.id as categoryId, c.name as categoryName " +
+            "FROM article a JOIN rss_feed rf on rf.id = a.rss_feed_id " +
+            "JOIN publisher p on p.id = rf.publisher_id " +
+            "JOIN category c on c.id = rf.category_id " +
             "WHERE a.count_ratings = 0 AND " +
             "rf.category_id = :categoryId AND " +
             "rf.publisher_id in (:publisherIds) AND " +
             "rf.lang = :lang AND " +
+            "(:topFeed =  0 or :topFeed = a.is_top_news) AND " +
             "a.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate,now()) " +
             "ORDER BY a.published_at DESC",
-            countQuery = "SELECT count(*) FROM article a JOIN rss_feed rf on rf.id = a.rss_feed_id " +
+            countQuery = "SELECT count(*) " +
+                    "FROM article a JOIN rss_feed rf on rf.id = a.rss_feed_id " +
+                    "JOIN publisher p on p.id = rf.publisher_id " +
+                    "JOIN category c on c.id = rf.category_id " +
                     "WHERE a.count_ratings = 0 AND " +
                     "rf.category_id = :categoryId AND " +
                     "rf.publisher_id in (:publisherIds) AND " +
                     "rf.lang = :lang AND " +
+                    "(:topFeed =  0 or :topFeed = a.is_top_news) AND " +
                     "a.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate,now())"
             , nativeQuery = true)
-    Page<Article> retrieveUnratedArticlesByCategoryIdAndPublisherIdsAndLanguage(
+    Page<CustomArticle> retrieveUnratedArticlesByCategoryIdAndPublisherIdsAndLanguage(
             @Param("categoryId") Long categoryId,
             @Param("publisherIds") List<Long> publisherIds,
             @Param("lang") String lang,
             @Param("fromDate") LocalDateTime fromDate,
             @Param("toDate") LocalDateTime toDate,
+            @Param("topFeed") Boolean topFeed,
             Pageable pageable);
 
-    @Query(value = "select p.id as publisher_id, p.name as publisher_name,t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at,a.content, a.count_ratings, a.is_accessible, t.average_rating_criteria_1, t.average_rating_criteria_2,t.average_rating_criteria_3, sum(t.average_rating_criteria_1 + t.average_rating_criteria_2 + t.average_rating_criteria_3)/ (CASE WHEN  t.average_rating_criteria_1 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_2 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_3 IS NULL THEN 0 ELSE 1 END) AS total_average_rating from (SELECT distinct r.article_id,(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=1) as average_rating_criteria_1,(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=2) as average_rating_criteria_2,(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=3) as average_rating_criteria_3 FROM rating r group by r.article_id) as t INNER JOIN article a ON a.id= t.article_id INNER JOIN rss_feed rf ON rf.id = a.rss_feed_id INNER JOIN category c ON c.id = rf.category_id INNER JOIN publisher p ON p.id = rf.publisher_id INNER JOIN article_topic at2 on a.id = at2.article_id INNER JOIN topic t2 on at2.topic_id = t2.id WHERE rf.lang = :lang AND t2.id = :topicId AND a.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate,now()) group by t.article_id order by total_average_rating DESC",
+    @Query(value = "select c.id as category_id, c.name as category_name, 0 as count_comment, p.id as publisher_id, p.name as publisher_name,t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at,a.content, a.count_ratings, a.is_accessible, t.average_rating_criteria_1, t.average_rating_criteria_2,t.average_rating_criteria_3, sum(t.average_rating_criteria_1 + t.average_rating_criteria_2 + t.average_rating_criteria_3)/ (CASE WHEN  t.average_rating_criteria_1 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_2 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_3 IS NULL THEN 0 ELSE 1 END) AS total_average_rating from (SELECT distinct r.article_id,(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=1) as average_rating_criteria_1,(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=2) as average_rating_criteria_2,(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=3) as average_rating_criteria_3 FROM rating r group by r.article_id) as t INNER JOIN article a ON a.id= t.article_id INNER JOIN rss_feed rf ON rf.id = a.rss_feed_id INNER JOIN category c ON c.id = rf.category_id INNER JOIN publisher p ON p.id = rf.publisher_id INNER JOIN article_topic at2 on a.id = at2.article_id INNER JOIN topic t2 on at2.topic_id = t2.id WHERE rf.lang = :lang AND t2.id = :topicId AND a.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate,now()) group by t.article_id order by total_average_rating DESC",
             countQuery = "select COUNT(*) from (SELECT distinct r.article_id,(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=1) as average_rating_criteria_1,(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=2) as average_rating_criteria_2,(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=3) as average_rating_criteria_3 FROM rating r group by r.article_id) as t INNER JOIN article a ON a.id= t.article_id INNER JOIN rss_feed rf ON rf.id = a.rss_feed_id INNER JOIN category c ON c.id = rf.category_id INNER JOIN publisher p ON p.id = rf.publisher_id INNER JOIN article_topic at2 on a.id = at2.article_id INNER JOIN topic t2 on at2.topic_id = t2.id WHERE rf.lang = :lang AND t2.name = :topicId AND a.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate,now()) group by t.article_id",
             nativeQuery = true)
     Page<CustomRatedArticle> retrieveRatedArticlesByLangAndTopicId(
@@ -280,11 +321,80 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             @Param("topic") String topic);
 
     @Query(value = "select * from article a where a.id in " +
-            "(Select DISTINCT(a.id) From article a JOIN rating r on a.id = r.article_id Join user u on r.user_id = u.id WHERE count_ratings > 0 AND user_id = :userId);",
-    nativeQuery = true)
+            "(Select DISTINCT(a.id) From article a JOIN rating r on a.id = r.article_id Join user u on r.user_id = u.id WHERE count_ratings > 0 " +
+            "AND r.user_id = :userId AND r.date_created BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate, now()));",
+            nativeQuery = true)
     List<Article> getRatedArticleFromUser(
-            @Param("userId") Long userId
+            @Param("userId") Long userId,
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate
     );
+
+    @Query(value = "select c.id as category_id, c.name as category_name, 0 as count_comment, t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at, a.content, a.count_ratings, a.is_accessible,  a.is_top_news, p.id as publisher_id, p.name as publisher_name,t.average_rating_criteria_1, t.average_rating_criteria_2, t.average_rating_criteria_3, sum(t.average_rating_criteria_1 + t.average_rating_criteria_2 + t.average_rating_criteria_3)/" +
+            "(CASE WHEN  t.average_rating_criteria_1 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_2 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_3 IS NULL THEN 0 ELSE 1 END) AS total_average_rating " +
+            "from (SELECT distinct r.article_id, r.user_id, " +
+            "(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=1) as average_rating_criteria_1, " +
+            "(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=2) as average_rating_criteria_2, " +
+            "(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=3) as average_rating_criteria_3 " +
+            "FROM rating r group by r.article_id, r.user_id) as t " +
+            "INNER JOIN article a ON a.id= t.article_id " +
+            "INNER JOIN rss_feed rf ON rf.id = a.rss_feed_id " +
+            "INNER JOIN category c ON c.id = rf.category_id " +
+            "INNER JOIN publisher p ON p.id = rf.publisher_id " +
+            " WHERE " +
+            "t.user_id = :userId AND " +
+            "a.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate,now()) " +
+            "group by t.article_id order by total_average_rating DESC;"
+            , nativeQuery = true)
+    List<CustomRatedArticle> retrieveAllPersonalRatedArticlesInDescOrder(
+            @Param("userId") Long userId,
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate);
+
+
+    interface CustomRatedArticle {
+        Long getPublisher_id();
+
+        Integer getCount_comment();
+
+        String getPublisher_name();
+
+        Long getArticle_id();
+
+        String getAuthor();
+
+        String getTitle();
+
+        String getDescription();
+
+        String getUrl();
+
+        String getUrl_to_image();
+
+        String getGuid();
+
+        String getPublished_at();
+
+        String getContent();
+
+        Integer getCount_ratings();
+
+        Boolean getIs_accessible();
+
+        Boolean getIs_top_news();
+
+        Double getAverage_rating_criteria_1();
+
+        Double getAverage_rating_criteria_2();
+
+        Double getAverage_rating_criteria_3();
+
+        Double getTotal_average_rating();
+
+        Long getCategory_id();
+
+        String getCategory_name();
+    }
 
 
 }

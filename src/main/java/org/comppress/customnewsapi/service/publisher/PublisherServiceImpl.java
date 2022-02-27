@@ -52,7 +52,7 @@ public class PublisherServiceImpl implements PublisherService {
     @Override
     public ResponseEntity<GenericPage> getPublisherUser(String lang, int page, int size) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserEntity userEntity = userRepository.findByUsername(authentication.getName());
+        UserEntity userEntity = userRepository.findByUsernameAndDeletedFalse(authentication.getName());
 
         if (userEntity.getListCategoryIds() == null || userEntity.getListCategoryIds().isEmpty() || doesNotContainAnyPublishersFromLang(userEntity.getListPublisherIds(), lang)) {
             Page<Publisher> publisherPage = publisherRepository.findByLang(lang, PageRequest.of(page, size));

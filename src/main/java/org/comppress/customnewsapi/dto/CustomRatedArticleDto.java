@@ -34,7 +34,16 @@ public class CustomRatedArticleDto {
     private String publisher_name;
     @JsonProperty(value = "publisher_id")
     private Long publisher_id;
-    @JsonProperty(value = "count_comment")
+
+    @JsonProperty(value = "count_comment", defaultValue = "0")
     private Integer count_comment;
 
+    @JsonProperty(value = "category_id")
+    private Long category_id;
+
+    @JsonProperty(value = "category_name")
+    private String category_name;
+
+    @JsonProperty("is_rated")
+    private Boolean isRated = false;
 }
