@@ -8,6 +8,7 @@ public interface ErrorCodes {
     String CNA_005 = "CNA_005";   // Unauthorized
     String CNA_006 = "CNA_006";   // Publisher not found Exception
     String CNA_007 = "CNA_007";   // Publisher not found Exception
+    String CNA_008 = "CNA_008";   // Date format exception
     String CNA_999 = "CNA_999";   // General Exception
 
 }

@@ -320,11 +320,23 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             @Param("lang") String lang,
             @Param("topic") String topic);
 
-    @Query(value = "select * from article a where a.id in " +
-            "(Select DISTINCT(a.id) From article a JOIN rating r on a.id = r.article_id Join user u on r.user_id = u.id WHERE count_ratings > 0 " +
-            "AND r.user_id = :userId AND r.date_created BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate, now()));",
+    @Query(value = "select c.id as category_id, c.name as category_name, 0 as count_comment, t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at, a.content, a.count_ratings, a.is_accessible,  a.is_top_news, p.id as publisher_id, p.name as publisher_name,t.average_rating_criteria_1, t.average_rating_criteria_2, t.average_rating_criteria_3, sum(t.average_rating_criteria_1 + t.average_rating_criteria_2 + t.average_rating_criteria_3)/" +
+            "(CASE WHEN  t.average_rating_criteria_1 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_2 IS NULL THEN 0 ELSE 1 END + CASE WHEN t.average_rating_criteria_3 IS NULL THEN 0 ELSE 1 END) AS total_average_rating " +
+            "from (SELECT distinct r.article_id, r.user_id, " +
+            "(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=1) as average_rating_criteria_1, " +
+            "(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=2) as average_rating_criteria_2, " +
+            "(select avg(r1.rating) from rating r1 where r1.article_id = r.article_id AND r1.criteria_id=3) as average_rating_criteria_3 " +
+            "FROM rating r group by r.article_id, r.user_id) as t " +
+            "INNER JOIN article a ON a.id= t.article_id " +
+            "INNER JOIN rss_feed rf ON rf.id = a.rss_feed_id " +
+            "INNER JOIN category c ON c.id = rf.category_id " +
+            "INNER JOIN publisher p ON p.id = rf.publisher_id " +
+            "WHERE count_ratings > 0 AND " +
+            "t.user_id = :userId AND " +
+            "a.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate,now()) " +
+            "group by t.article_id order by total_average_rating DESC;",
             nativeQuery = true)
-    List<Article> getRatedArticleFromUser(
+    List<CustomRatedArticle> getRatedArticleFromUser(
             @Param("userId") Long userId,
             @Param("fromDate") LocalDateTime fromDate,
             @Param("toDate") LocalDateTime toDate

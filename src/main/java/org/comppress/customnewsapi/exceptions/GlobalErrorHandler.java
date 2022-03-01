@@ -77,6 +77,15 @@ public class GlobalErrorHandler extends ResponseEntityExceptionHandler {
                 .build());
     }
 
+    @ExceptionHandler(DateFormatException.class)
+    public ResponseEntity<ErrorResponseDto> handleDateFormatException(DateFormatException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponseDto.builder()
+                .message(ex.getMessage())
+                .variable(ex.getVariable())
+                .errorCode(ErrorCodes.CNA_008)
+                .build());
+    }
+
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorResponseDto.builder()

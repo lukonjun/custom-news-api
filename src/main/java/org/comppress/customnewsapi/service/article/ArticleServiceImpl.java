@@ -322,13 +322,18 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserEntity userEntity = userRepository.findByUsernameAndDeletedFalse(authentication.getName());
 
-        List<Article> articleList = articleRepository.getRatedArticleFromUser(
+        List<ArticleRepository.CustomRatedArticle> articleList = articleRepository.getRatedArticleFromUser(
                 userEntity.getId(),
                 DateUtils.stringToLocalDateTime(fromDate),
                 DateUtils.stringToLocalDateTime(toDate));
 
-        List<ArticleDto> articleDtos = articleList.stream().map(Article::toDto).collect(Collectors.toList());
-        return PageHolderUtils.getResponseEntityGenericPage(page, size, articleDtos);
+        List<CustomRatedArticleDto> customRatedArticleDtoList = new ArrayList<>();
+        articleList.forEach(customRatedArticle -> {
+            CustomRatedArticleDto customRatedArticleDto = new CustomRatedArticleDto();
+            BeanUtils.copyProperties(customRatedArticle, customRatedArticleDto);
+            customRatedArticleDtoList.add(customRatedArticleDto);
+        });
+        return PageHolderUtils.getResponseEntityGenericPage(page, size, customRatedArticleDtoList);
     }
 
     @Override

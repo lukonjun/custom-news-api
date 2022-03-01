@@ -41,6 +41,12 @@ public class UserServiceImpl implements UserService{
         entity.setPassword(bcryptEncoder.encode(userDto.getPassword()));
         entity.setDeleted(false);
         try {
+
+            boolean exist = userRepository.existsByEmail(userDto.getEmail());
+
+            if (exist){
+                throw new DuplicateEntryException("Duplicate record found",String.format("%s,%s",entity.getUsername(),entity.getEmail()));
+            }
             entity = userRepository.save(entity);
         }catch (DataIntegrityViolationException ex){
             throw new DuplicateEntryException("Duplicate record found",String.format("%s,%s",entity.getUsername(),entity.getEmail()));
