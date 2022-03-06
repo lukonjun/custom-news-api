@@ -7,7 +7,6 @@ import com.rometools.rome.io.ParsingFeedException;
 import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
 import lombok.extern.slf4j.Slf4j;
-import org.comppress.customnewsapi.dto.ArticleDto;
 import org.comppress.customnewsapi.dto.CustomArticleDto;
 import org.comppress.customnewsapi.dto.CustomRatedArticleDto;
 import org.comppress.customnewsapi.dto.GenericPage;
@@ -212,6 +211,10 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
                     article.setUrlToImage(imgUrl);
                 }
             }
+            if(article.getUrlToImage() == null || article.getUrlToImage().equals("") || article.getUrlToImage() == null){
+                System.out.println("ImgUrl is in undesired State");
+            }
+
         }
         if (syndEntry.getUri() != null) {
             article.setGuid(syndEntry.getUri());
