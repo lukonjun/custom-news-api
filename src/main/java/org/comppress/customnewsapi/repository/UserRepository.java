@@ -13,5 +13,6 @@ public interface UserRepository extends JpaRepository<UserEntity, Integer> {
     List<UserEntity> findByDeletedTrue();
     Optional<UserEntity> findByEmailAndDeletedFalse(String email);
     Optional<UserEntity> findByOtpAndEmailAndIsOtpUsedFalse(String otp, String email);
+    List<UserEntity> findByEmailAndDeletedTrue(String email);
 
 }

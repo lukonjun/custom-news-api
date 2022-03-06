@@ -7,7 +7,6 @@ import com.rometools.rome.io.ParsingFeedException;
 import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
 import lombok.extern.slf4j.Slf4j;
-import org.comppress.customnewsapi.dto.ArticleDto;
 import org.comppress.customnewsapi.dto.CustomArticleDto;
 import org.comppress.customnewsapi.dto.CustomRatedArticleDto;
 import org.comppress.customnewsapi.dto.GenericPage;
@@ -212,6 +211,10 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
                     article.setUrlToImage(imgUrl);
                 }
             }
+            if(article.getUrlToImage() == null || article.getUrlToImage() == "" || article.getUrlToImage() == null){
+                System.out.println("ImgUrl is in undesired State");
+            }
+
         }
         if (syndEntry.getUri() != null) {
             article.setGuid(syndEntry.getUri());
@@ -322,13 +325,18 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserEntity userEntity = userRepository.findByUsernameAndDeletedFalse(authentication.getName());
 
-        List<Article> articleList = articleRepository.getRatedArticleFromUser(
+        List<ArticleRepository.CustomRatedArticle> articleList = articleRepository.getRatedArticleFromUser(
                 userEntity.getId(),
                 DateUtils.stringToLocalDateTime(fromDate),
                 DateUtils.stringToLocalDateTime(toDate));
 
-        List<ArticleDto> articleDtos = articleList.stream().map(Article::toDto).collect(Collectors.toList());
-        return PageHolderUtils.getResponseEntityGenericPage(page, size, articleDtos);
+        List<CustomRatedArticleDto> customRatedArticleDtoList = new ArrayList<>();
+        articleList.forEach(customRatedArticle -> {
+            CustomRatedArticleDto customRatedArticleDto = new CustomRatedArticleDto();
+            BeanUtils.copyProperties(customRatedArticle, customRatedArticleDto);
+            customRatedArticleDtoList.add(customRatedArticleDto);
+        });
+        return PageHolderUtils.getResponseEntityGenericPage(page, size, customRatedArticleDtoList);
     }
 
     @Override
