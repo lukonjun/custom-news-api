@@ -47,6 +47,15 @@ public class UserServiceImpl implements UserService{
             if (exist){
                 throw new DuplicateEntryException("Duplicate record found",String.format("%s,%s",entity.getUsername(),entity.getEmail()));
             }
+
+            // Checking for deleted/ decrypted
+
+            UserEntity user = getDeleted(userDto.getEmail());
+
+            if (user != null){
+                throw new DuplicateEntryException("Deleted user record found",String.format("%s,%s",entity.getUsername(),entity.getEmail()));
+            }
+
             entity = userRepository.save(entity);
         }catch (DataIntegrityViolationException ex){
             throw new DuplicateEntryException("Duplicate record found",String.format("%s,%s",entity.getUsername(),entity.getEmail()));
@@ -72,6 +81,17 @@ public class UserServiceImpl implements UserService{
     @Override
     public ResponseEntity<UserDto> getDeletedUser(String email) {
 
+        UserEntity entity = getDeleted(email);
+
+        if (entity != null){
+            return ResponseEntity.status(HttpStatus.OK).body(entity.toDto(UserDto.class));
+        }
+
+        throw new UserNotFoundException("User not found", email);
+    }
+
+    private UserEntity getDeleted(String email){
+
         List<UserEntity> userEntities = userRepository.findByDeletedTrue();
 
         for (UserEntity user : userEntities){
@@ -83,12 +103,11 @@ public class UserServiceImpl implements UserService{
                 user.setUsername(EncryptDecrypt.decrypt(user.getUsername(), key));
                 user.setName(EncryptDecrypt.decrypt(user.getName(), key));
 
-                return ResponseEntity.status(HttpStatus.OK).body(user.toDto(UserDto.class));
+                return user;
 
             }
 
         }
-
-        throw new UserNotFoundException("User not found", email);
+        return null;
     }
 }
