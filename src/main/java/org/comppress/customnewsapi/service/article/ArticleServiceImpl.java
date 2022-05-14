@@ -1,5 +1,8 @@
 package org.comppress.customnewsapi.service.article;
 
+
+import com.rometools.modules.mediarss.MediaEntryModule;
+import com.rometools.modules.mediarss.MediaModule;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.feed.synd.SyndFeedImpl;
@@ -179,6 +182,12 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
         }
         if (syndEntry.getEnclosures() != null && !syndEntry.getEnclosures().isEmpty()) {
             article.setUrlToImage(syndEntry.getEnclosures().get(0).getUrl());
+
+            MediaEntryModule mm = (MediaEntryModule) syndEntry.getModule(MediaModule.URI);
+            if(mm != null && mm.getMediaContents() != null && mm.getMediaContents().length != 0){
+                log.info("{}", mm.getMediaContents()[0].getReference());
+                article.setUrlToImage(mm.getMediaContents()[0].getReference().toString());
+            }
         } else {
             String imgUrl = null;
             if (syndEntry.getDescription() != null) {
@@ -211,6 +220,13 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
                     article.setUrlToImage(imgUrl);
                 }
             }
+
+            MediaEntryModule mm = (MediaEntryModule) syndEntry.getModule(MediaModule.URI);
+            if(mm != null && mm.getMediaContents() != null && mm.getMediaContents().length != 0){
+                log.info("{}", mm.getMediaContents()[0].getReference());
+                article.setUrlToImage(mm.getMediaContents()[0].getReference().toString());
+            }
+
             if(article.getUrlToImage() == null || article.getUrlToImage().equals("") || article.getUrlToImage() == null){
                 System.out.println("ImgUrl is in undesired State");
             }

@@ -10,9 +10,9 @@ spring:
         size: 3
   datasource:
     driver-class-name: org.mariadb.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/comppress?allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8
+    url: jdbc:mysql://localhost:3306/new_2_comppress?allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8
     username: root
-    password: root
+    password: secret
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
@@ -42,7 +42,7 @@ scheduler:
   news-feed:
     triggeringIntervalMilliSeconds: 40000
     initialDelayIntervalMilliSeconds: 5000
-    enabled: no
+    enabled: yes
   paywall:
     triggeringIntervalMilliSeconds: 20000
     initialDelayIntervalMilliSeconds: 4000
