@@ -14,11 +14,9 @@ import org.comppress.customnewsapi.dto.CustomArticleDto;
 import org.comppress.customnewsapi.dto.CustomRatedArticleDto;
 import org.comppress.customnewsapi.dto.GenericPage;
 import org.comppress.customnewsapi.entity.*;
+import org.comppress.customnewsapi.exceptions.AuthenticationException;
 import org.comppress.customnewsapi.exceptions.GeneralException;
-import org.comppress.customnewsapi.repository.ArticleRepository;
-import org.comppress.customnewsapi.repository.PublisherRepository;
-import org.comppress.customnewsapi.repository.RssFeedRepository;
-import org.comppress.customnewsapi.repository.UserRepository;
+import org.comppress.customnewsapi.repository.*;
 import org.comppress.customnewsapi.service.BaseSpecification;
 import org.comppress.customnewsapi.utils.CustomStringUtils;
 import org.comppress.customnewsapi.utils.DateUtils;
@@ -68,13 +66,15 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
     private final ArticleRepository articleRepository;
     private final PublisherRepository publisherRepository;
     private final UserRepository userRepository;
+    private final RatingRepository ratingRepository;
 
     @Autowired
-    public ArticleServiceImpl(RssFeedRepository rssFeedRepository, ArticleRepository articleRepository, PublisherRepository publisherRepository, UserRepository userRepository) {
+    public ArticleServiceImpl(RssFeedRepository rssFeedRepository, ArticleRepository articleRepository, PublisherRepository publisherRepository, UserRepository userRepository, RatingRepository ratingRepository) {
         this.rssFeedRepository = rssFeedRepository;
         this.articleRepository = articleRepository;
         this.publisherRepository = publisherRepository;
         this.userRepository = userRepository;
+        this.ratingRepository = ratingRepository;
     }
 
     public List<Article> fetchArticlesFromTopNewsFeed(TopNewsFeed topNewsFeed) {
@@ -207,11 +207,14 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
             }
 
             boolean isBadResolution = false;
-            // If width or length of the image is less than 200px then we save the publisher image
-            if ((dimension.getHeight() < imageHeight || dimension.getWidth() < imageWidth) && imgUrl != null) {
-                isBadResolution = true;
-                log.debug("Picture with image url {} has a bad resolution", imgUrl);
+            if(dimension != null){
+                // If width or length of the image is less than 200px then we save the publisher image
+                if ((dimension.getHeight() < imageHeight || dimension.getWidth() < imageWidth) && imgUrl != null) {
+                    isBadResolution = true;
+                    log.debug("Picture with image url {} has a bad resolution", imgUrl);
+                }
             }
+
             if(rssFeed != null){
                 if (imgUrl == null || imgUrl.isEmpty() || isBadResolution) {
                     Optional<Publisher> publisher = publisherRepository.findById(rssFeed.getPublisherId());
@@ -299,7 +302,15 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
     @Override
     public ResponseEntity<GenericPage> getRatedArticles(int page, int size, Long categoryId,
                                                         List<Long> listPublisherIds, String lang,
-                                                        String fromDate, String toDate, Boolean topFeed, Boolean noPaywall) {
+                                                        String fromDate, String toDate, Boolean topFeed, Boolean noPaywall, String guid) {
+
+        UserEntity userEntity = null;
+        if (guid == null) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            userEntity = userRepository.findByUsernameAndDeletedFalse(authentication.getName());
+            if(userEntity == null) throw new AuthenticationException("You are not authorized, please login","");
+        }
+
         if (listPublisherIds == null) {
             listPublisherIds = publisherRepository.findAll().stream().map(Publisher::getId).collect(Collectors.toList());
         }
@@ -318,6 +329,22 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
             BeanUtils.copyProperties(customRatedArticle, customRatedArticleDto);
             customRatedArticleDtoList.add(customRatedArticleDto);
         });
+
+
+        // Check if has been rated
+        for(CustomRatedArticleDto articleDto:customRatedArticleDtoList){
+            if(userEntity != null){
+                if(!ratingRepository.findByUserIdAndArticleId(userEntity.getId(),articleDto.getArticle_id()).isEmpty()){
+                    articleDto.setIsRated(true);
+                }
+            }else{
+                if(!ratingRepository.findByGuidAndArticleId(guid, articleDto.getArticle_id()).isEmpty()){
+                    articleDto.setIsRated(true);
+                }
+            }
+        }
+
+
         return PageHolderUtils.getResponseEntityGenericPage(page, size, customRatedArticleDtoList);
     }
 
@@ -389,7 +416,7 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
             url = new URL(imageUrl);
             image = ImageIO.read(url);
 
-
+            if(image == null)return null;
 //            TODO size checking
 
 //            DataBuffer dataBuffer = image.getData().getDataBuffer();

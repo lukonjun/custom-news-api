@@ -61,9 +61,10 @@ public class ArticleController {
             @RequestParam(value = "fromDate", required = false) String fromDate,
             @RequestParam(value = "toDate", required = false) String toDate,
             @RequestParam(value = "noPaywall", required = false, defaultValue = "false") Boolean noPaywall,
-            @RequestParam(value = "topFeed", required = false, defaultValue = "false") Boolean topFeed
+            @RequestParam(value = "topFeed", required = false, defaultValue = "false") Boolean topFeed,
+            @RequestParam(value = "guid", required = false) String guid
     ) {
-        return articleService.getRatedArticles(page, size, categoryId, listPublisherIds, lang, fromDate, toDate, topFeed, noPaywall);
+        return articleService.getRatedArticles(page, size, categoryId, listPublisherIds, lang, fromDate, toDate, topFeed, noPaywall, guid);
     }
 
     @GetMapping("/rated/user")

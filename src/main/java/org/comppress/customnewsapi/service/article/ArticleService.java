@@ -24,9 +24,9 @@ public interface ArticleService extends GenerateGenericPageUtils {
 
     void update(Article article) throws URISyntaxException, IOException;
 
-    ResponseEntity<GenericPage> getRatedArticles(int page, int size, Long categoryId,
+    ResponseEntity<GenericPage>  getRatedArticles(int page, int size, Long categoryId,
                                                  List<Long> listPublisherIds, String lang,
-                                                 String fromDate, String toDate, Boolean topFeed, Boolean noPaywall);
+                                                 String fromDate, String toDate, Boolean topFeed, Boolean noPaywall, String guid);
 
     ResponseEntity<GenericPage<CustomArticleDto>> getArticlesNotRated(int page, int size, Long categoryId,
                                                                 List<Long> listPublisherIds, String lang,
