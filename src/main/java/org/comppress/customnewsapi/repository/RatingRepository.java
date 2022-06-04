@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface RatingRepository extends JpaRepository<Rating,Long> {
 
@@ -22,6 +21,10 @@ public interface RatingRepository extends JpaRepository<Rating,Long> {
     Rating findByGuidAndArticleIdAndCriteriaId(String guid, Long articleId, Long criteriaId);
 
     List<Rating> findByArticleId(Long articleId);
+
+    List<Rating> findByUserIdAndArticleId(Long userId, Long articleId);
+
+    List<Rating> findByGuidAndArticleId(String guid, Long articleId);
 
     @Query(value = "SELECT AVG(rating) FROM rating WHERE article_id = :articleId AND criteria_id = :criteriaId ", nativeQuery = true)
     Double retrieveAverageRatingOfArticleForCriteria(@Param("articleId") Long articleId,
