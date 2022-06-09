@@ -219,6 +219,7 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
                 if (imgUrl == null || imgUrl.isEmpty() || isBadResolution) {
                     Optional<Publisher> publisher = publisherRepository.findById(rssFeed.getPublisherId());
                     article.setUrlToImage(publisher.get().getUrlToImage());
+                    article.setScaleImage(true);
                 } else {
                     article.setUrlToImage(imgUrl);
                 }
@@ -228,6 +229,7 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
             if(mm != null && mm.getMediaContents() != null && mm.getMediaContents().length != 0){
                 log.info("{}", mm.getMediaContents()[0].getReference());
                 article.setUrlToImage(mm.getMediaContents()[0].getReference().toString());
+                article.setScaleImage(false);
             }
 
             if(article.getUrlToImage() == null || article.getUrlToImage().equals("") || article.getUrlToImage() == null){
