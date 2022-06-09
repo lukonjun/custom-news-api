@@ -31,6 +31,7 @@ public class Article extends AbstractEntity{
     private boolean isAccessible = true;
     private boolean isAccessibleUpdated = false;
     private boolean isTopNews = false;
+    private boolean scaleImage = false;
 
     public ArticleDto toDto(){
         ArticleDto articleDto = new ArticleDto();

@@ -21,5 +21,7 @@ public class ArticleDto {
     private Integer countRatings;
     @JsonProperty(value = "is_accessible")
     private boolean isAccessible;
+    @JsonProperty(value = "scale_image")
+    private boolean scaleImage;
 
 }
