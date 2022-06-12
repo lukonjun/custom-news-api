@@ -56,7 +56,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
 
     @Query(value = "SELECT at.id as id, at.author as author, at.title as title, at.description as description, " +
             "at.url as url, at.url_to_image as urlToImage, at.published_at as publishedAt, at.count_ratings as countRatings, " +
-            "at.is_accessible as isAccessible, at.is_top_news isTopNews, p.id as publisherId, p.name as publisherName, " +
+            "at.is_accessible as isAccessible, at.is_top_news isTopNews, p.id as publisherId, p.name as publisherName, at.scale_image as scaleImage, " +
             "0 as countComment, c.id as categoryId, c.name as categoryName " +
             "FROM article at JOIN rss_feed rf on rf.id = at.rss_feed_id " +
             "JOIN publisher p on p.id = rf.publisher_id " +
@@ -102,6 +102,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
         Long getCategoryId();
         String getCategoryName();
         Boolean getIsRated();
+        Boolean getScaleImage();
 
     }
 
@@ -252,7 +253,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
 
     @Query(value = "SELECT a.id as id, a.author as author, a.title as title, a.description as description, " +
             "a.url as url, a.url_to_image as urlToImage, a.published_at as publishedAt, a.count_ratings as countRatings, " +
-            "a.is_accessible as isAccessible, a.scale_image, a.is_top_news isTopNews, p.id as publisherId, p.name as publisherName, " +
+            "a.is_accessible as isAccessible, a.scale_image as scaleImage, a.is_top_news isTopNews, p.id as publisherId, p.name as publisherName, " +
             "0 as countComment, c.id as categoryId, c.name as categoryName " +
             "FROM article a JOIN rss_feed rf on rf.id = a.rss_feed_id " +
             "JOIN publisher p on p.id = rf.publisher_id " +
