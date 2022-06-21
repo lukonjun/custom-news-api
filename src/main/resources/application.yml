@@ -1,3 +1,7 @@
+logging:
+  level:
+    root: WARN
+# logging.level.com.baeldung.testloglevel=DEBUG
 info:
   app:
     name: compress
