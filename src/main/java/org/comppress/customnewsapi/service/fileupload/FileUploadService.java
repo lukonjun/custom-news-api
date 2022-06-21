@@ -12,7 +12,7 @@ import java.util.List;
 
 public interface FileUploadService {
 
-    ResponseEntity<List<RssFeed>> saveRssFeeds(MultipartFile file);
+    ResponseEntity<List<RssFeed>> saveRssFeeds(MultipartFile file) throws Exception;
     ResponseEntity<List<CriteriaDto>> saveCriteria(MultipartFile file);
 
     ResponseEntity<List<CategoryDto>> saveCategorySVGs(MultipartFile file);
@@ -20,4 +20,6 @@ public interface FileUploadService {
     ResponseEntity<List<PublisherDto>> savePublisherSVGs(MultipartFile file);
 
     ResponseEntity<List<TopNewsFeedDto>> saveTopNews(MultipartFile file);
+
+    ResponseEntity<List<CategoryDto>> saveCategories(MultipartFile file);
 }

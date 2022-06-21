@@ -42,11 +42,15 @@ public class FileUploadServiceImpl implements FileUploadService {
     private final int CRITERIA_ID = 0;
     private final int CRITERIA_NAME = 1;
 
-    private final int CATEGORY_NAME = 0;
+    private final int CATEGORY_SVG_NAME = 0;
     private final int CATEGORY_SVG_URL = 1;
 
     private final int PUBLISHER_NAME = 0;
     private final int PUBLISHER_SVG_URL = 1;
+
+    private final int CATEGORY_LANG = 0;
+    private final int CATEGORY_NAME = 1;
+    private final int CATEGORY_IMG_URL = 2;
 
     private final RssFeedRepository rssFeedRepository;
     private final PublisherRepository publisherRepository;
@@ -65,7 +69,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 
     @Transactional
     @Override
-    public ResponseEntity<List<RssFeed>> saveRssFeeds(MultipartFile file) {
+    public ResponseEntity<List<RssFeed>> saveRssFeeds(MultipartFile file) throws Exception {
 
         log.info("LINKS IMPORT CSV IS PROCESSING {}", file.getName());
 
@@ -95,7 +99,7 @@ public class FileUploadServiceImpl implements FileUploadService {
         }
     }
 
-    private List<RssFeed> getRssFeeds(List<CSVRecord> csvRecordList) {
+    private List<RssFeed> getRssFeeds(List<CSVRecord> csvRecordList) throws Exception {
         List<RssFeed> rssFeedList = new ArrayList<>();
 
         for (CSVRecord record : csvRecordList) {
@@ -106,8 +110,13 @@ public class FileUploadServiceImpl implements FileUploadService {
             }
             Category category = categoryRepository.findByNameAndLang(record.get(RSS_FEED_CATEGORY),record.get(RSS_FEED_LANG));
             if (category == null) {
+                throw new RuntimeException("Category should not be null during import "+record.get(RSS_FEED_CATEGORY) + " : " + record.get(RSS_FEED_LANG)+
+                        "call /category before"
+                );
+                /*
                 category = new Category(record.get(RSS_FEED_CATEGORY), record.get(RSS_FEED_LANG),"");
                 categoryRepository.save(category);
+                 */
             }
             rssFeedList.add(RssFeed.builder()
                     .publisherId(publisher.getId())
@@ -148,7 +157,7 @@ public class FileUploadServiceImpl implements FileUploadService {
         List<CSVRecord> csvRecordList = getRecords(file);
         List<CategoryDto> categoryDtoList = new ArrayList<>();
         for(CSVRecord csvRecord:csvRecordList){
-            List<Category> listCategory = categoryRepository.findByName(csvRecord.get(CATEGORY_NAME));
+            List<Category> listCategory = categoryRepository.findByName(csvRecord.get(CATEGORY_SVG_NAME));
             for(Category category:listCategory){
                 category.setUrlToImage(csvRecord.get(CATEGORY_SVG_URL));
                 CategoryDto categoryDto = new CategoryDto();
@@ -202,5 +211,26 @@ public class FileUploadServiceImpl implements FileUploadService {
             }
         }
         return ResponseEntity.ok().body(topNewsFeedDtos);
+    }
+
+    @Override
+    public ResponseEntity<List<CategoryDto>> saveCategories(MultipartFile file) {
+        log.info("LINKS IMPORT CSV IS PROCESSING {}", file.getName());
+
+        List<CSVRecord> csvRecordList = getRecords(file);
+        List<CategoryDto> categoryDtoList = new ArrayList<>();
+        for(CSVRecord csvRecord:csvRecordList){
+            if(categoryRepository.findByNameAndLang(csvRecord.get(CATEGORY_NAME),csvRecord.get(CATEGORY_LANG)) == null){
+                Category category = new Category();
+                category.setName(csvRecord.get(CATEGORY_NAME));
+                category.setLang(csvRecord.get(CATEGORY_LANG));
+                category.setUrlToImage(csvRecord.get(CATEGORY_IMG_URL));
+                categoryRepository.save(category);
+                CategoryDto categoryDto = new CategoryDto();
+                BeanUtils.copyProperties(category,categoryDto);
+                categoryDtoList.add(categoryDto);
+            }
+        }
+        return ResponseEntity.ok().body(categoryDtoList);
     }
 }

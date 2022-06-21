@@ -29,8 +29,13 @@ public class FileUploadController {
     }
 
     @PostMapping(value ="/links", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<List<RssFeed>> saveRssFeeds(@RequestParam("file") MultipartFile file){
+    public ResponseEntity<List<RssFeed>> saveRssFeeds(@RequestParam("file") MultipartFile file) throws Exception {
         return fileUploadService.saveRssFeeds(file);
+    }
+
+    @PostMapping(value ="/category", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<CategoryDto>> saveCategories(@RequestParam("file") MultipartFile file){
+        return fileUploadService.saveCategories(file);
     }
 
     @PostMapping(value ="/category-svg", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
