@@ -15,7 +15,6 @@ import org.comppress.customnewsapi.dto.CustomRatedArticleDto;
 import org.comppress.customnewsapi.dto.GenericPage;
 import org.comppress.customnewsapi.entity.*;
 import org.comppress.customnewsapi.exceptions.AuthenticationException;
-import org.comppress.customnewsapi.exceptions.GeneralException;
 import org.comppress.customnewsapi.repository.*;
 import org.comppress.customnewsapi.service.BaseSpecification;
 import org.comppress.customnewsapi.utils.CustomStringUtils;
@@ -427,7 +426,8 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
             return new Dimension(image.getHeight(), image.getWidth());
 
         } catch (IOException e) {
-            throw new GeneralException("Error while get the resolution of the image", String.valueOf(url));
+            log.error("Error while get the resolution of the image {}",url);
+            return null;
         }
 
     }
