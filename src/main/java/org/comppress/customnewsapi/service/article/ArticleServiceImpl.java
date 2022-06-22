@@ -304,6 +304,10 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
                                                         List<Long> listPublisherIds, String lang,
                                                         String fromDate, String toDate, Boolean topFeed, Boolean noPaywall, String guid) {
 
+        log.info("Request Parameter for /custom-news-api/articles/rated: ");
+        log.info("page: {}, size: {}, categoryId: {}, listPublisherIds: {}, lang: {}, fromDate: {}, toDate: {}, topFeed: {}, noPaywall: {}, guid: {}", page, size, categoryId, listPublisherIds, lang,
+                 fromDate, toDate, topFeed, noPaywall, guid);
+
         UserEntity userEntity = null;
         if (guid == null) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

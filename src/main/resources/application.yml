@@ -1,6 +1,6 @@
 logging:
   level:
-    root: WARN
+    root: info
 # logging.level.com.baeldung.testloglevel=DEBUG
 info:
   app:
