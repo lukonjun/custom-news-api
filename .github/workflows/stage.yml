@@ -1,4 +1,4 @@
-name: Application Pipeline
+name: Pipeline Stage
 on:
   workflow_dispatch:
   push:
@@ -8,30 +8,30 @@ on:
     - helm/**
 
 jobs:
-  compile-test-build-push-deploy-to-infrastructure:
+  build-and-push-stage:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up JDK 1.17
-      uses: actions/setup-java@v1
-      with:
-        java-version: 1.17
-    - name: Build jar with Maven
-      run: mvn clean install -Dmaven.test.skip=true
-    - name: Build Container Image
-      run: docker build --tag ghcr.io/lukonjun/custom-news-api:${{ github.run_id }} .
-    - name: Login to GitHub Container Registry
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
-    - name: Run docker push
-      run: docker push ghcr.io/lukonjun/custom-news-api:${{ github.run_id }}
-    - name: kubectl set up
-      run: |
-        mkdir ~/.kube/
-        touch ~/.kube/config
-        echo '${{ secrets.KUBECONFIG }}' > ~/.kube/config
-    - name: test
-      run: kubectl get nodes
-    - name: helm deploy
-      run:
-        helm upgrade --install news-api ./news-api --values stage.yml --set image.tag="${{ github.run_id }}" --set env.SPRING_DATASOURCE_PASSWORD="${{ secrets.STAGE_DB_PASSWORD }}" --set env.SPRING_DATASOURCE_USERNAME=lucas --set env.SPRING_DATASOURCE_URL="${{ secrets.DB_CONNECTION_STRING }}" --set env.SPRING_MAIL_PASSWORD="${{ secrets.STAGE_MAIL_PASSWORD }}"
-      working-directory: ./helm
+      - uses: actions/checkout@v2
+      - name: Set up JDK 1.17
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.17
+      - name: Build jar with Maven
+        run: mvn clean install -Dmaven.test.skip=true
+      - name: Build Container Image
+        run: docker build --tag ghcr.io/lukonjun/custom-news-api:${{ github.run_id }} .
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login https://ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Run docker push
+        run: docker push ghcr.io/lukonjun/custom-news-api:${{ github.run_id }}
+      - name: kubectl set up
+        run: |
+          mkdir ~/.kube/
+          touch ~/.kube/config
+          echo '${{ secrets.KUBECONFIG }}' > ~/.kube/config
+      - name: test
+        run: kubectl get nodes
+      - name: helm deploy
+        run:
+          helm upgrade --install news-api ./news-api --values stage.yml --set image.tag="${{ github.run_id }}" --set env.SPRING_DATASOURCE_PASSWORD="${{ secrets.STAGE_DB_PASSWORD }}" --set env.SPRING_DATASOURCE_USERNAME=lucas --set env.SPRING_DATASOURCE_URL="${{ secrets.DB_CONNECTION_STRING }}" --set env.SPRING_MAIL_PASSWORD="${{ secrets.STAGE_MAIL_PASSWORD }}"
+        working-directory: ./helm

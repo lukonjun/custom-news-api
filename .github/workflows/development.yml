@@ -1,4 +1,4 @@
-name: Application Pipeline
+name: Pipeline Development
 on:
   workflow_dispatch:
   push:
@@ -8,7 +8,7 @@ on:
       - helm/**
 
 jobs:
-  compile-test-build-push-deploy-to-infrastructure:
+  build-and-push-development:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
