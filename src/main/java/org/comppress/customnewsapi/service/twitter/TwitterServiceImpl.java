@@ -2,6 +2,7 @@ package org.comppress.customnewsapi.service.twitter;
 
 import io.github.redouane59.twitter.TwitterClient;
 import io.github.redouane59.twitter.dto.tweet.Tweet;
+import lombok.extern.slf4j.Slf4j;
 import org.comppress.customnewsapi.dto.CustomRatedArticleDto;
 import org.comppress.customnewsapi.dto.TwitterArticleDto;
 import org.comppress.customnewsapi.entity.Article;
@@ -21,6 +22,7 @@ import twitter4j.User;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class TwitterServiceImpl implements TwitterService {
 
     private final TwitterRepository twitterRepository;
@@ -67,13 +69,13 @@ public class TwitterServiceImpl implements TwitterService {
                 e.printStackTrace();
                 throw new RuntimeException("Could not Update Status (Tweet)");
             }
-            System.out.println(status.getURLEntities());
+            log.info("Status url: ",status.getURLEntities());
             // Save new Twitter Article to Database
             // Build URL String to access Tweet
             // https://twitter.com/justano12715638
             User user = status.getUser();
             String URL = "https://twitter.com/" + user.getScreenName() +"/status/" + status.getId();
-            System.out.println(URL);
+            log.info(URL);
             twitterTweet = new TwitterTweet().builder()
                     .articleId(id)
                     .twitterId(status.getId())

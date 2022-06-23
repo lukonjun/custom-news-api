@@ -232,7 +232,7 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
             }
 
             if(article.getUrlToImage() == null || article.getUrlToImage().equals("") || article.getUrlToImage() == null){
-                System.out.println("ImgUrl is in undesired State");
+                log.debug("ImgUrl is in undesired State");
             }
 
         }

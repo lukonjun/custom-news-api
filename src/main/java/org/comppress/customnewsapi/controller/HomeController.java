@@ -36,18 +36,4 @@ public class HomeController {
         return homeService.getUserPreference(page, size, lang, categoryIds, publisherIds, fromDate, toDate, noPaywall);
     }
 
-    @GetMapping("/category")
-    public ResponseEntity<GenericPage<CustomRatedArticleDto>> getArticleForCategory(
-            @RequestParam(value = "page") int page,
-            @RequestParam(value = "size") int size,
-            @RequestParam(value = "categoryIds", required = false) List<Long> categoryIds,
-            @RequestParam(value = "publisherIds", required = false) List<Long> publisherIds,
-            @RequestParam(value = "lang", required = false, defaultValue = "en") String lang,
-            @RequestParam(value = "fromDate", required = false) String fromDate,
-            @RequestParam(value = "toDate", required = false) String toDate,
-            @RequestParam(value = "noPaywall", required = false, defaultValue = "false") Boolean noPaywall
-    ) {
-        return homeService.getArticleForCategory(page, size, categoryIds, publisherIds, lang, fromDate, toDate, noPaywall);
-    }
-
 }

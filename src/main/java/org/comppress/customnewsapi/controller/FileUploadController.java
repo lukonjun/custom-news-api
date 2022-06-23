@@ -38,11 +38,6 @@ public class FileUploadController {
         return fileUploadService.saveCategories(file);
     }
 
-    @PostMapping(value ="/category-svg", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<List<CategoryDto>> saveCategorySVGs(@RequestParam("file") MultipartFile file){
-        return fileUploadService.saveCategorySVGs(file);
-    }
-
     @PostMapping(value ="/publisher-svg", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<List<PublisherDto>> savePublisherSVGs(@RequestParam("file") MultipartFile file){
         return fileUploadService.savePublisherSVGs(file);

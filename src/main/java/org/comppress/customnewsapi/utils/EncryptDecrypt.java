@@ -1,15 +1,17 @@
 package org.comppress.customnewsapi.utils;
 
 
+import lombok.extern.slf4j.Slf4j;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Base64;
 
-import javax.crypto.Cipher;
-import javax.crypto.spec.SecretKeySpec;
-
+@Slf4j
 public class EncryptDecrypt {
 
     private static SecretKeySpec secretKey;
@@ -37,7 +39,7 @@ public class EncryptDecrypt {
             cipher.init(Cipher.ENCRYPT_MODE, secretKey);
             return Base64.getEncoder().encodeToString(cipher.doFinal(strToEncrypt.getBytes("UTF-8")));
         } catch (Exception e) {
-            System.out.println("Error while encrypting: " + e.toString());
+            log.error("Error while encrypting: {}",e.toString());
         }
         return null;
     }
@@ -49,7 +51,7 @@ public class EncryptDecrypt {
             cipher.init(Cipher.DECRYPT_MODE, secretKey);
             return new String(cipher.doFinal(Base64.getDecoder().decode(strToDecrypt)));
         } catch (Exception e) {
-            System.out.println("Error while decrypting: " + e.toString());
+            log.error("Error while encrypting: {}",e.toString());
         }
         return null;
     }
@@ -58,12 +60,10 @@ public class EncryptDecrypt {
         final String secretKey = "ssshhhhhhhhhhh!!!!";
 
         String originalString = "howtodoinjava.com";
-        System.out.println(originalString);
 
         String encryptedString = EncryptDecrypt.encrypt(originalString, secretKey) ;
-        System.out.println(encryptedString);
 
         String decryptedString = EncryptDecrypt.decrypt("Tg2Nn7wUZOQ6Xc+1lenkZTQ9ZDf9a2/RBRiqJBCIX6o=", secretKey) ;
-        System.out.println(decryptedString);
+        log.info(decryptedString);
     }
 }
