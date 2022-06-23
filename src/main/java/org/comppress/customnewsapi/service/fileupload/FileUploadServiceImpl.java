@@ -42,9 +42,6 @@ public class FileUploadServiceImpl implements FileUploadService {
     private final int CRITERIA_ID = 0;
     private final int CRITERIA_NAME = 1;
 
-    private final int CATEGORY_SVG_NAME = 0;
-    private final int CATEGORY_SVG_URL = 1;
-
     private final int PUBLISHER_NAME = 0;
     private final int PUBLISHER_SVG_URL = 1;
 
@@ -150,25 +147,6 @@ public class FileUploadServiceImpl implements FileUploadService {
     }
 
     @Override
-    @Transactional
-    public ResponseEntity<List<CategoryDto>> saveCategorySVGs(MultipartFile file) {
-        log.info("LINKS IMPORT CSV IS PROCESSING {}", file.getName());
-
-        List<CSVRecord> csvRecordList = getRecords(file);
-        List<CategoryDto> categoryDtoList = new ArrayList<>();
-        for(CSVRecord csvRecord:csvRecordList){
-            List<Category> listCategory = categoryRepository.findByName(csvRecord.get(CATEGORY_SVG_NAME));
-            for(Category category:listCategory){
-                category.setUrlToImage(csvRecord.get(CATEGORY_SVG_URL));
-                CategoryDto categoryDto = new CategoryDto();
-                BeanUtils.copyProperties(category, categoryDto);
-                categoryDtoList.add(categoryDto);
-            }
-        }
-        return ResponseEntity.ok().body(categoryDtoList);
-    }
-
-    @Override
     public ResponseEntity<List<PublisherDto>> savePublisherSVGs(MultipartFile file) {
         log.info("LINKS IMPORT CSV IS PROCESSING {}", file.getName());
 
@@ -213,6 +191,12 @@ public class FileUploadServiceImpl implements FileUploadService {
         return ResponseEntity.ok().body(topNewsFeedDtos);
     }
 
+    /**
+     * Special upload method as it takes care of name, language and img_url
+     * opposing to publisher where there is an extra upload method to upload the image urls
+     * @param file
+     * @return
+     */
     @Override
     public ResponseEntity<List<CategoryDto>> saveCategories(MultipartFile file) {
         log.info("LINKS IMPORT CSV IS PROCESSING {}", file.getName());

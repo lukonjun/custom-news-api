@@ -15,8 +15,6 @@ public interface FileUploadService {
     ResponseEntity<List<RssFeed>> saveRssFeeds(MultipartFile file) throws Exception;
     ResponseEntity<List<CriteriaDto>> saveCriteria(MultipartFile file);
 
-    ResponseEntity<List<CategoryDto>> saveCategorySVGs(MultipartFile file);
-
     ResponseEntity<List<PublisherDto>> savePublisherSVGs(MultipartFile file);
 
     ResponseEntity<List<TopNewsFeedDto>> saveTopNews(MultipartFile file);
