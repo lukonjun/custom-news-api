@@ -90,22 +90,6 @@ public class HomeServiceImpl implements HomeService, BaseSpecification {
         return PageHolderUtils.getResponseEntityGenericPage(page,size,customCategoryDtos);
     }
 
-    @Override
-    public ResponseEntity<GenericPage<CustomRatedArticleDto>> getArticleForCategory(int page, int size, List<Long> categoryIds, List<Long> publisherIds, String lang, String fromDate, String toDate, Boolean noPaywall) {
-        // TODO Interceptor Checking for Either JWT or GUID
-        if (categoryIds == null || categoryIds.isEmpty()) {
-            categoryIds = categoryRepository.findByLang(lang, PageRequest.of(page, size)).stream().map(category -> category.getId()).collect(Collectors.toList());
-        }
-        if (publisherIds == null || publisherIds.isEmpty()) {
-            publisherIds = publisherRepository.findByLang(lang).stream().map(publisher -> publisher.getId()).collect(Collectors.toList());
-        }
-
-        Page<ArticleRepository.CustomRatedArticle> articlesPage = articleRepository.retrieveArticlesByCategoryIdsAndPublisherIdsAndLanguage(
-                categoryIds, publisherIds, lang, DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(toDate), noPaywall, PageRequest.of(page, size)
-        );
-        return ResponseEntity.ok().body(getCustomRatedArticleDtoGenericPage(articlesPage));
-    }
-
     private CustomCategoryDto setArticles(Category category, String lang,
                                           List<Long> publisherIds, LocalDateTime fromDate, LocalDateTime toDate, Boolean noPaywall) {
         // TODO Limit 1, Publishers included, Rated
