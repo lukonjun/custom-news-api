@@ -8,15 +8,16 @@ import org.comppress.customnewsapi.entity.AbstractEntity;
 import org.comppress.customnewsapi.entity.Category;
 import org.comppress.customnewsapi.entity.Publisher;
 import org.comppress.customnewsapi.entity.UserEntity;
-import org.comppress.customnewsapi.repository.*;
+import org.comppress.customnewsapi.repository.ArticleRepository;
+import org.comppress.customnewsapi.repository.CategoryRepository;
+import org.comppress.customnewsapi.repository.PublisherRepository;
+import org.comppress.customnewsapi.repository.UserRepository;
 import org.comppress.customnewsapi.service.BaseSpecification;
 import org.comppress.customnewsapi.service.twitter.TwitterService;
 import org.comppress.customnewsapi.utils.DateUtils;
 import org.comppress.customnewsapi.utils.PageHolderUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -79,25 +80,25 @@ public class HomeServiceImpl implements HomeService, BaseSpecification {
 
     @Override
     public ResponseEntity<GenericPage> getUserPreference(int page,int size,String lang, List<Long> categoryIds,
-                                                               List<Long> publisherIds, String fromDate, String toDate, Boolean noPaywall) {
+                                                               List<Long> publisherIds, String fromDate, String toDate, Boolean isAccessible) {
 
         final List<Long> finalPubIds = getPublisher(publisherIds, lang);
         categoryIds = getCategory(categoryIds,lang);
 
         List<CustomCategoryDto> customCategoryDtos = categoryRepository.
                 findByCategoryIds(categoryIds).stream().map(s -> setArticles(s, lang,
-                finalPubIds, DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(toDate), noPaywall)).collect(Collectors.toList());
+                finalPubIds, DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(toDate), isAccessible)).collect(Collectors.toList());
         return PageHolderUtils.getResponseEntityGenericPage(page,size,customCategoryDtos);
     }
 
     private CustomCategoryDto setArticles(Category category, String lang,
-                                          List<Long> publisherIds, LocalDateTime fromDate, LocalDateTime toDate, Boolean noPaywall) {
+                                          List<Long> publisherIds, LocalDateTime fromDate, LocalDateTime toDate, Boolean isAccessible) {
         // TODO Limit 1, Publishers included, Rated
         if (publisherIds == null || publisherIds.isEmpty()) {
             publisherIds = publisherRepository.findByLang(lang).stream().map(AbstractEntity::getId).collect(Collectors.toList());
         }
         Long categoryId = category.getId();
-        ArticleRepository.CustomRatedArticle article = articleRepository.retrieveArticlesByCategoryIdsAndPublisherIdsAndLanguageAndLimit(categoryId,publisherIds,lang,fromDate,toDate,noPaywall);
+        ArticleRepository.CustomRatedArticle article = articleRepository.retrieveArticlesByCategoryIdsAndPublisherIdsAndLanguageAndLimit(categoryId,publisherIds,lang,fromDate,toDate,isAccessible);
         CustomCategoryDto customCategoryDto = new CustomCategoryDto();
         if(article != null){
             CustomRatedArticleDto customRatedArticleDto = new CustomRatedArticleDto();

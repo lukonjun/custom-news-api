@@ -31,10 +31,11 @@ public class ArticleController {
             @RequestParam(value = "category", required = false) String category,
             @RequestParam(value = "publisherNewsPaper", required = false) String publisherNewsPaper,
             @RequestParam(value = "lang", required = false, defaultValue = "en") String lang,
+            @RequestParam(value = "isAccessible", required = false, defaultValue = "false") Boolean isAccessible,
             @RequestParam(value = "fromDate", required = false) String fromDate,
             @RequestParam(value = "toDate", required = false) String toDate
     ) {
-        return articleService.getArticles(page, size, title, category, publisherNewsPaper, lang, fromDate, toDate);
+        return articleService.getArticles(page, size, title, category, publisherNewsPaper, lang, isAccessible, fromDate, toDate);
     }
 
     @GetMapping("/unrated")
@@ -44,11 +45,12 @@ public class ArticleController {
             @RequestParam(value = "categoryId") Long categoryId,
             @RequestParam(value = "listPublisherIds", required = false) List<Long> listPublisherIds,
             @RequestParam(value = "lang", required = false, defaultValue = "en") String lang,
+            @RequestParam(value = "isAccessible", required = false, defaultValue = "false") Boolean isAccessible,
             @RequestParam(value = "fromDate", required = false) String fromDate,
             @RequestParam(value = "toDate", required = false) String toDate,
             @RequestParam(value = "topFeed", required = false, defaultValue = "false") Boolean topFeed
     ) {
-        return articleService.getArticlesNotRated(page, size, categoryId, listPublisherIds, lang, fromDate, toDate, topFeed);
+        return articleService.getArticlesNotRated(page, size, categoryId, listPublisherIds, lang, isAccessible, fromDate, toDate, topFeed);
     }
 
     @GetMapping("/rated")
@@ -60,11 +62,11 @@ public class ArticleController {
             @RequestParam(value = "lang", required = false, defaultValue = "en") String lang,
             @RequestParam(value = "fromDate", required = false) String fromDate,
             @RequestParam(value = "toDate", required = false) String toDate,
-            @RequestParam(value = "noPaywall", required = false, defaultValue = "false") Boolean noPaywall,
+            @RequestParam(value = "isAccessible", required = false, defaultValue = "false") Boolean isAccessible,
             @RequestParam(value = "topFeed", required = false, defaultValue = "false") Boolean topFeed,
             @RequestParam(value = "guid", required = false) String guid
     ) {
-        return articleService.getRatedArticles(page, size, categoryId, listPublisherIds, lang, fromDate, toDate, topFeed, noPaywall, guid);
+        return articleService.getRatedArticles(page, size, categoryId, listPublisherIds, lang, fromDate, toDate, topFeed, isAccessible, guid);
     }
 
     @GetMapping("/rated/user")

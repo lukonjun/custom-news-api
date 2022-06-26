@@ -159,7 +159,15 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
         }
     }
 
-    private String formatText(String text) {
+    public boolean checkIfArticleIsAccessibleWithoutPaywall(String response){
+        if (response.contains("\"isAccessibleForFree\":false") || response.contains("\"isAccessibleForFree\": false")) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    public String formatText(String text) {
         //TODO ENHANCE, FILTER ALSO FOR HTML TAGS LIKE <p>
         //String title = Text.normalizeString(text);
         text = text.replace("\n", "");
@@ -277,12 +285,12 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
         return response.body();
     }
 
-    public ResponseEntity<GenericPage<CustomArticleDto>> getArticles(int page, int size, String title, String category, String publisherNewsPaper, String lang, String fromDate, String toDate) {
+    public ResponseEntity<GenericPage<CustomArticleDto>> getArticles(int page, int size, String title, String category, String publisherNewsPaper, String lang, Boolean isAccessible, String fromDate, String toDate) {
 
         Page<ArticleRepository.CustomArticle> articlesPage = articleRepository
                 .retrieveByCategoryOrPublisherNameToCustomArticle(category,
                         publisherNewsPaper, title, lang,
-                        DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(toDate),
+                        DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(toDate), isAccessible,
                         PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id")));
 
         GenericPage<CustomArticleDto> genericPage = new GenericPage<>();
@@ -302,11 +310,11 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
     @Override
     public ResponseEntity<GenericPage> getRatedArticles(int page, int size, Long categoryId,
                                                         List<Long> listPublisherIds, String lang,
-                                                        String fromDate, String toDate, Boolean topFeed, Boolean noPaywall, String guid) {
+                                                        String fromDate, String toDate, Boolean topFeed, Boolean isAccessible, String guid) {
 
         log.info("Request Parameter for /custom-news-api/articles/rated: ");
-        log.info("page: {}, size: {}, categoryId: {}, listPublisherIds: {}, lang: {}, fromDate: {}, toDate: {}, topFeed: {}, noPaywall: {}, guid: {}", page, size, categoryId, listPublisherIds, lang,
-                 fromDate, toDate, topFeed, noPaywall, guid);
+        log.info("page: {}, size: {}, categoryId: {}, listPublisherIds: {}, lang: {}, fromDate: {}, toDate: {}, topFeed: {}, isAccessible: {}, guid: {}", page, size, categoryId, listPublisherIds, lang,
+                 fromDate, toDate, topFeed, isAccessible, guid);
 
         UserEntity userEntity = null;
         if (guid == null) {
@@ -320,7 +328,7 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
         }
         List<ArticleRepository.CustomRatedArticle> customRatedArticleList = articleRepository.retrieveAllRatedArticlesInDescOrder(
                 categoryId, listPublisherIds, lang,
-                DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(toDate), topFeed, noPaywall);
+                DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(toDate), topFeed, isAccessible);
         /* // TODO WHY CAN WE NOT USE THE COUNT QUERY HERE; SQL ERROR
         Page<ArticleRepository.CustomRatedArticle> customRatedArticlePage = articleRepository.retrieveAllRatedArticlesInDescOrder(
                 title, category, publisherNewsPaper, lang,
@@ -353,11 +361,11 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
     }
 
     @Override
-    public ResponseEntity<GenericPage<CustomArticleDto>> getArticlesNotRated(int page, int size, Long categoryId, List<Long> listPublisherIds, String lang, String fromDate, String toDate, Boolean topFeed) {
+    public ResponseEntity<GenericPage<CustomArticleDto>> getArticlesNotRated(int page, int size, Long categoryId, List<Long> listPublisherIds, String lang, Boolean isAccessible, String fromDate, String toDate, Boolean topFeed) {
         if (listPublisherIds == null) {
             listPublisherIds = publisherRepository.findAll().stream().map(Publisher::getId).collect(Collectors.toList());
         }
-        Page<ArticleRepository.CustomArticle> articlesPage = articleRepository.retrieveUnratedArticlesByCategoryIdAndPublisherIdsAndLanguage(categoryId, listPublisherIds, lang, DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(toDate), topFeed,PageRequest.of(page, size));
+        Page<ArticleRepository.CustomArticle> articlesPage = articleRepository.retrieveUnratedArticlesByCategoryIdAndPublisherIdsAndLanguage(categoryId, listPublisherIds, lang, isAccessible, DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(toDate), topFeed,PageRequest.of(page, size));
 
         GenericPage<CustomArticleDto> genericPage = new GenericPage<>();
         genericPage.setData(articlesPage.stream().map(this::toCustomDto).collect(Collectors.toList()));

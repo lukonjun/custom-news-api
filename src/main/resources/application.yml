@@ -50,12 +50,12 @@ scheduler:
   paywall:
     triggeringIntervalMilliSeconds: 20000
     initialDelayIntervalMilliSeconds: 4000
-    enabled: no
+    enabled: yes
     page-size: 100
   twitter:
     triggeringIntervalMilliSeconds: 60000
     initialDelayIntervalMilliSeconds: 5000
-    enabled: no
+    enabled: yes
 jwt:
   secret: secret
 executor:

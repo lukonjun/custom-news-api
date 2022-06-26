@@ -31,9 +31,9 @@ public class HomeController {
             @RequestParam(value = "publisherIds", required = false) List<Long> publisherIds,
             @RequestParam(value = "fromDate", required = false) String fromDate,
             @RequestParam(value = "toDate", required = false) String toDate,
-            @RequestParam(value = "noPaywall", required = false, defaultValue = "false") Boolean noPaywall
+            @RequestParam(value = "isAccessible", required = false, defaultValue = "false") Boolean isAccessible
     ) {
-        return homeService.getUserPreference(page, size, lang, categoryIds, publisherIds, fromDate, toDate, noPaywall);
+        return homeService.getUserPreference(page, size, lang, categoryIds, publisherIds, fromDate, toDate, isAccessible);
     }
 
 }
