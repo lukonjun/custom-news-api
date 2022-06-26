@@ -66,6 +66,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             "(:publisherName is null or :publisherName = '' or p.name LIKE %:publisherName%) AND " +
             "(:title is null or :title = '' or at.title LIKE %:title%) AND " +
             "(:language is null or :language = '' or rf.lang LIKE :language) AND " +
+            "(:isAccessible =  0 or :isAccessible = at.is_accessible) AND " +
             "at.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND " +
             "IFNULL(:toDate,now()) ",
             countQuery = "SELECT count(*) FROM article at JOIN rss_feed rf on rf.id = at.rss_feed_id " +
@@ -75,15 +76,18 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
                     "(:publisherName is null or :publisherName = '' or p.name LIKE %:publisherName%) AND " +
                     "(:title is null or :title = '' or at.title LIKE %:title%) AND " +
                     "(:language is null or :language = '' or rf.lang LIKE :language) AND " +
+                    "(:isAccessible =  0 or :isAccessible = at.is_accessible) AND " +
                     "at.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND " +
                     "IFNULL(:toDate,now())", nativeQuery = true)
-    Page<CustomArticle> retrieveByCategoryOrPublisherNameToCustomArticle(@Param("category") String category,
-                                                                   @Param("publisherName") String publisherName,
-                                                                   @Param("title") String title,
-                                                                   @Param("language") String language,
-                                                                   @Param("fromDate") LocalDateTime fromDate,
-                                                                   @Param("toDate") LocalDateTime toDate,
-                                                                   Pageable pageable);
+    Page<CustomArticle> retrieveByCategoryOrPublisherNameToCustomArticle(
+            @Param("category") String category,
+            @Param("publisherName") String publisherName,
+            @Param("title") String title,
+            @Param("language") String language,
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
+            @Param("isAccessible") Boolean isAccessible,
+            Pageable pageable);
 
     interface CustomArticle {
         Long getId();
@@ -262,6 +266,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             "rf.category_id = :categoryId AND " +
             "rf.publisher_id in (:publisherIds) AND " +
             "rf.lang = :lang AND " +
+            "(:isAccessible =  0 or :isAccessible = a.is_accessible) AND " +
             "(:topFeed =  0 or :topFeed = a.is_top_news) AND " +
             "a.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate,now()) " +
             "ORDER BY a.published_at DESC",
@@ -273,6 +278,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
                     "rf.category_id = :categoryId AND " +
                     "rf.publisher_id in (:publisherIds) AND " +
                     "rf.lang = :lang AND " +
+                    "(:isAccessible =  0 or :isAccessible = a.is_accessible) AND " +
                     "(:topFeed =  0 or :topFeed = a.is_top_news) AND " +
                     "a.published_at BETWEEN IFNULL(:fromDate, '1900-01-01 00:00:00') AND IFNULL(:toDate,now())"
             , nativeQuery = true)
@@ -280,6 +286,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
             @Param("categoryId") Long categoryId,
             @Param("publisherIds") List<Long> publisherIds,
             @Param("lang") String lang,
+            @Param("isAccessible") Boolean isAccessible,
             @Param("fromDate") LocalDateTime fromDate,
             @Param("toDate") LocalDateTime toDate,
             @Param("topFeed") Boolean topFeed,

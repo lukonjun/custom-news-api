@@ -15,7 +15,7 @@ public interface ArticleService extends GenerateGenericPageUtils {
 
     ResponseEntity<GenericPage<CustomArticleDto>> getArticles(int page, int size,
                                                               String title, String category,
-                                                              String publisherNewsPaper, String lang,
+                                                              String publisherNewsPaper, String lang, Boolean isAccessible,
                                                               String fromDate, String toDate);
 
     void fetchArticlesFromRssFeeds();
@@ -24,13 +24,15 @@ public interface ArticleService extends GenerateGenericPageUtils {
 
     void update(Article article) throws URISyntaxException, IOException;
 
+    boolean checkIfArticleIsAccessibleWithoutPaywall(String response);
+
     ResponseEntity<GenericPage>  getRatedArticles(int page, int size, Long categoryId,
                                                  List<Long> listPublisherIds, String lang,
                                                  String fromDate, String toDate, Boolean topFeed, Boolean noPaywall, String guid);
 
     ResponseEntity<GenericPage<CustomArticleDto>> getArticlesNotRated(int page, int size, Long categoryId,
-                                                                List<Long> listPublisherIds, String lang,
-                                                                String fromDate, String toDate, Boolean topFeed);
+                                                                      List<Long> listPublisherIds, String lang,
+                                                                      Boolean isAccessible, String fromDate, String toDate, Boolean topFeed);
 
     ResponseEntity<GenericPage> getRatedArticlesFromUser(int page, int size, String fromDate, String toDate);
 
