@@ -23,6 +23,10 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     @Query(value = "SELECT * FROM article JOIN rss_feed rf on rf.id = article.rss_feed_id WHERE rf.category_id = :categoryId ", nativeQuery = true)
     List<Article> retrieveArticlesByCategoryId(@Param("categoryId") Long categoryId);
 
+    @Query(value = "Select a.id as article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at, a.content, a.count_ratings, a.is_accessible, a.scale_image as scale_image, rf.category_id as category_id, c.name as category_name, 0 as count_comment, rf.publisher_id as publisher_id, p.name as publisher_name " +
+            "from article a JOIN rss_feed rf on rf.id = a.rss_feed_id JOIN category c on c.id = rf.category_id JOIN publisher p on p.id = rf.publisher_id WHERE rf.category_id = :categoryId AND a.published_at is not null Order by a.published_at DESC Limit 1", nativeQuery = true)
+    CustomRatedArticle nQSelectLatestArticle(@Param("categoryId") Long categoryId);
+
     boolean existsById(Long id);
 
     Optional<Article> findByGuid(String guid);
@@ -107,7 +111,6 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
         String getCategoryName();
         Boolean getIsRated();
         Boolean getScaleImage();
-
     }
 
     @Query(value = "select c.id as category_id, c.name as category_name, 0 as count_comment, t.article_id, a.author, a.title, a.description, a.url, a.url_to_image, a.guid, a.published_at, a.content, a.count_ratings, a.is_accessible, a.scale_image, t.average_rating_criteria_1, t.average_rating_criteria_2, t.average_rating_criteria_3, sum(t.average_rating_criteria_1 + t.average_rating_criteria_2 + t.average_rating_criteria_3)/" +

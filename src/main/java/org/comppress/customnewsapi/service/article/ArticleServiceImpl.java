@@ -147,15 +147,17 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
     public void update(Article article) throws URISyntaxException, IOException {
         try {
             String response = urlReader(article.getUrl());
-            if (response.contains("\"isAccessibleForFree\":false") || response.contains("\"isAccessibleForFree\": false")) {
+            if(response == null){
+
+            } else if (response.contains("\"isAccessibleForFree\":false") || response.contains("\"isAccessibleForFree\": false")) {
                 article.setAccessible(false);
             } else {
                 article.setAccessible(true);
             }
             article.setAccessibleUpdated(true);
             articleRepository.save(article);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            log.warn(e.getMessage());
         }
     }
 
@@ -269,11 +271,18 @@ public class ArticleServiceImpl implements ArticleService, BaseSpecification {
 
     private String urlReader(String url) throws URISyntaxException, IOException, InterruptedException {
         log.info("Send GET request to " + url);
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(new URI(url))
-                .header("Accept-Encoding", "identity")
-                .GET()
-                .build();
+        HttpRequest request = null;
+        try {
+            request = HttpRequest.newBuilder()
+                    .uri(new URI(url))
+                    .header("Accept-Encoding", "identity")
+                    .GET()
+                    .build();
+        }catch (Exception e){
+            log.info("Exception in Thread");
+            log.info(e.getMessage());
+            return null;
+        }
 
         HttpClient client = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.ALWAYS)

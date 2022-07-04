@@ -23,7 +23,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -82,12 +86,22 @@ public class HomeServiceImpl implements HomeService, BaseSpecification {
     public ResponseEntity<GenericPage> getUserPreference(int page,int size,String lang, List<Long> categoryIds,
                                                                List<Long> publisherIds, String fromDate, String toDate, Boolean isAccessible) {
 
+        // if Date not set, retrieve results for last 24 hours
+        if(fromDate == null && toDate == null){
+            Instant instant = Instant.now().minus(24, ChronoUnit.HOURS);
+            Timestamp timestamp = Timestamp.from(instant);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            fromDate = timestamp.toLocalDateTime().format(formatter);
+            log.info(fromDate);
+        }
+
         final List<Long> finalPubIds = getPublisher(publisherIds, lang);
         categoryIds = getCategory(categoryIds,lang);
 
+        String finalFromDate = fromDate;
         List<CustomCategoryDto> customCategoryDtos = categoryRepository.
                 findByCategoryIds(categoryIds).stream().map(s -> setArticles(s, lang,
-                finalPubIds, DateUtils.stringToLocalDateTime(fromDate), DateUtils.stringToLocalDateTime(toDate), isAccessible)).collect(Collectors.toList());
+                finalPubIds, DateUtils.stringToLocalDateTime(finalFromDate), DateUtils.stringToLocalDateTime(toDate), isAccessible)).collect(Collectors.toList());
         return PageHolderUtils.getResponseEntityGenericPage(page,size,customCategoryDtos);
     }
 
@@ -109,7 +123,32 @@ public class HomeServiceImpl implements HomeService, BaseSpecification {
             }
             customCategoryDto.setArticle(customRatedArticleDto);
         }else {
-            customCategoryDto.setArticle(null);
+            ArticleRepository.CustomRatedArticle article2 = articleRepository.nQSelectLatestArticle(categoryId);
+            if(article2 == null) {
+                customCategoryDto.setArticle(null);
+            }else{
+                // Use Builder method, write custom in the DTO Object, this way it should work?!
+                // What is happening here? TwitterService.setReplyCount(customRatedArticleDto);
+                CustomRatedArticleDto customRatedArticleDto = CustomRatedArticleDto.builder()
+                        .author(article2.getAuthor())
+                        .title(article2.getTitle())
+                        .description(article2.getDescription())
+                        .url(article2.getUrl())
+                        .article_id(article2.getArticle_id())
+                        .url_to_image(article2.getUrl_to_image())
+                        .published_at(article2.getPublished_at())
+                        .is_accessible(article2.getIs_accessible())
+                        .publisher_name(article2.getPublisher_name())
+                        .publisher_id(article2.getPublisher_id())
+                        .count_comment(article2.getCount_comment())
+                        .category_id(article2.getCategory_id())
+                        .category_name(article2.getCategory_name())
+                        .isRated(false)
+                        .scale_image(article2.getScale_image())
+                        .build();
+
+                customCategoryDto.setArticle(customRatedArticleDto);
+            }
         }
         BeanUtils.copyProperties(category, customCategoryDto);
         return customCategoryDto;
